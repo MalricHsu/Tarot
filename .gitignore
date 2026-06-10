@@ -1,6 +1,0 @@
-node_modules/
-dist/
-.playwright-mcp/
-.codex/
-.DS_Store
-*.local
