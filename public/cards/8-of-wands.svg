@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="800" viewBox="0 0 500 800" role="img" aria-label="權杖八">
+  <rect width="500" height="800" rx="34" fill="#f4ecd7"/>
+  <rect x="22" y="22" width="456" height="756" rx="24" fill="#171612"/>
+  <rect x="42" y="42" width="416" height="716" rx="18" fill="#f7f1df"/>
+  <path d="M78 126 C136 72 219 78 250 135 C282 78 365 72 422 126 C373 111 315 126 283 172 C267 195 234 195 218 172 C185 126 127 111 78 126Z" fill="#b95c3b" opacity=".9"/>
+  <circle cx="250" cy="352" r="122" fill="#b95c3b" opacity=".16"/>
+  <circle cx="250" cy="352" r="82" fill="none" stroke="#b95c3b" stroke-width="12"/>
+  <text x="250" y="378" text-anchor="middle" font-family="Georgia, serif" font-size="118" fill="#171612">✦</text>
+  <line x1="102" y1="560" x2="398" y2="560" stroke="#b95c3b" stroke-width="8" stroke-linecap="round"/>
+  <text x="250" y="625" text-anchor="middle" font-family="'Noto Sans TC', system-ui, sans-serif" font-size="42" font-weight="800" fill="#171612">權杖八</text>
+  <text x="250" y="690" text-anchor="middle" font-family="Georgia, serif" font-size="38" fill="#b95c3b">8</text>
+</svg>

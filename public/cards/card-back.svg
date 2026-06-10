@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="800" viewBox="0 0 500 800" role="img" aria-label="塔羅牌背">
+  <rect width="500" height="800" rx="34" fill="#121614"/>
+  <rect x="26" y="26" width="448" height="748" rx="24" fill="#21332c" stroke="#d5b76f" stroke-width="12"/>
+  <path d="M250 128 L303 292 L475 292 L336 392 L389 556 L250 455 L111 556 L164 392 L25 292 L197 292 Z" fill="none" stroke="#d5b76f" stroke-width="14" stroke-linejoin="round"/>
+  <circle cx="250" cy="400" r="106" fill="none" stroke="#f4ecd7" stroke-width="8"/>
+  <text x="250" y="430" text-anchor="middle" font-family="Georgia, serif" font-size="96" fill="#f4ecd7">✦</text>
+</svg>
