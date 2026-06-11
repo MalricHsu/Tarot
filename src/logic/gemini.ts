@@ -135,18 +135,22 @@ export async function generateReading(
     { mode: 'reading', question, cards, spread },
   );
 
-  if (
-    !Array.isArray(result.interpretations) ||
-    typeof result.summary !== 'string' ||
-    !Array.isArray(result.actions)
-  ) {
-    throw new Error('Gemini 回傳格式不正確');
+  // 只要拿得到非空 summary 就接受；其餘欄位容錯補齊，不因小瑕疵整包丟棄走 fallback。
+  if (typeof result.summary !== 'string' || result.summary.trim().length === 0) {
+    throw new Error('Gemini 回傳缺少解讀內容');
   }
 
+  const rawInterps = Array.isArray(result.interpretations) ? result.interpretations : [];
+  const interpretations = Array.from({ length: cards.length }, (_, i) =>
+    typeof rawInterps[i] === 'string' ? (rawInterps[i] as string) : '',
+  );
+
   return {
-    interpretations: result.interpretations,
+    interpretations,
     summary: result.summary,
-    actions: result.actions.filter((item): item is string => typeof item === 'string').slice(0, 3),
+    actions: (Array.isArray(result.actions) ? result.actions : [])
+      .filter((item): item is string => typeof item === 'string')
+      .slice(0, 3),
   };
 }
 

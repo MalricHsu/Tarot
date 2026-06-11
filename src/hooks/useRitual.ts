@@ -125,6 +125,7 @@ export function useRitual() {
   const [reading, setReading] = useState<ReadingResult | null>(null);
   const [usedFallback, setUsedFallback] = useState(false);
   const [fallbackMessage, setFallbackMessage] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [clarification, setClarification] = useState('');
   const [isClarifying, setIsClarifying] = useState(false);
   const [clarificationError, setClarificationError] = useState('');
@@ -282,6 +283,37 @@ export function useRitual() {
     clarificationStartedRef.current = true;
     void requestClarification();
   }, [phase, reading, requestClarification]);
+
+  // 重新生成 AI 解讀（解讀失敗用本地 fallback 時提供）：成功後連帶刷新深層解析
+  const regenerateReading = useCallback(async () => {
+    if (!reading || isRegenerating) return;
+    setIsRegenerating(true);
+    try {
+      const geminiResult = await generateReading(trimmedQuestion, drawnCards, selectedSpread);
+      const nextReading = { cards: drawnCards, ...geminiResult };
+      setReading(nextReading);
+      setUsedFallback(false);
+      setFallbackMessage('');
+      if (currentHistoryItemId) {
+        setHistoryItems(
+          updateReadingHistoryItem(currentHistoryItemId, (item) => ({
+            ...item,
+            reading: nextReading,
+          })),
+        );
+      }
+      // 解讀換新後，讓深層解析重新生成
+      clarificationRequestRef.current += 1;
+      clarificationStartedRef.current = false;
+      setClarification('');
+      setClarificationError('');
+    } catch (error) {
+      console.error('[useRitual] regenerate reading error:', error);
+      setFallbackMessage(getGeminiFallbackMessage(error));
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [reading, isRegenerating, trimmedQuestion, drawnCards, selectedSpread, currentHistoryItemId]);
 
   // ── Handlers ────────────────────────────────────────────
 
@@ -483,6 +515,9 @@ export function useRitual() {
     reading,
     usedFallback,
     fallbackMessage,
+    isRegenerating,
+    regenerateReading,
+    regenerateClarification: requestClarification,
     clarification,
     isClarifying,
     clarificationError,

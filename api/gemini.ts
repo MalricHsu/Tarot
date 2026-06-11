@@ -65,7 +65,9 @@ type GeminiRequestBody =
 // 從最輕量的模型開始，quota 不足時自動 fallback 到下一個。
 const GEMINI_MODELS = [
   'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite',
   'gemini-2.5-flash',
+  'gemini-2.0-flash',
 ] as const;
 
 type GeminiModel = (typeof GEMINI_MODELS)[number];
@@ -214,6 +216,62 @@ function getBody(body: unknown): unknown {
   }
 }
 
+// ── JSON 容錯解析 ───────────────────────────────────────────────
+// AI 偶爾會把 JSON 包在 ```json 圍欄裡，或前後夾雜說明文字，
+// 導致直接 JSON.parse 失敗而把可用結果丟棄。這裡盡量救回。
+
+function extractJson(raw: string): unknown {
+  const text = raw.trim();
+  try {
+    return JSON.parse(text);
+  } catch {
+    // 去除 markdown 圍欄
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (fenced) {
+      try {
+        return JSON.parse(fenced[1].trim());
+      } catch {
+        /* 落到下方子字串解析 */
+      }
+    }
+    // 取第一個 { 到最後一個 } 的子字串
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      return JSON.parse(text.slice(start, end + 1));
+    }
+    throw new Error('No parseable JSON found');
+  }
+}
+
+/** reading 用：能解析出帶非空 summary 的物件才算有效，否則換下一個模型重生。 */
+function isValidReadingText(text: string): boolean {
+  try {
+    const parsed = extractJson(text);
+    return (
+      isRecord(parsed) &&
+      typeof parsed.summary === 'string' &&
+      parsed.summary.trim().length > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** 把解析後的 reading 物件修正成穩定形狀，避免欄位小瑕疵就整包丟棄。 */
+function coerceReading(parsed: unknown, cardCount: number): ReadingResult {
+  const obj = isRecord(parsed) ? parsed : {};
+  const summary = typeof obj.summary === 'string' ? obj.summary : '';
+  const rawInterps = Array.isArray(obj.interpretations) ? obj.interpretations : [];
+  const interpretations = Array.from({ length: cardCount }, (_, i) =>
+    typeof rawInterps[i] === 'string' ? (rawInterps[i] as string) : '',
+  );
+  const actions = (Array.isArray(obj.actions) ? obj.actions : [])
+    .filter((a: unknown): a is string => typeof a === 'string')
+    .slice(0, 3);
+  return { interpretations, summary, actions };
+}
+
 // ── Retry-after parser ──────────────────────────────────────────
 // Gemini 在 429 回應的 error.details 裡可能帶 retryDelay（秒數字串如 "58s"）
 // 或在 error.message 裡帶類似 "retry after 58 seconds" 的文字。
@@ -236,6 +294,8 @@ interface GeminiCallOptions {
   responseMimeType?: string;
   responseSchema?: object;
   temperature: number;
+  /** 內容有效性檢查；回 false 視為暫時失敗、換下一個模型重生。 */
+  validate?: (text: string) => boolean;
 }
 
 interface GeminiCallResult {
@@ -313,15 +373,17 @@ async function callGeminiWithFallback(
           candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
         };
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        if (text) {
+        if (text && (!config.validate || config.validate(text))) {
           console.log(`[gemini] success with model=${model} round=${round}`);
           return { text, model };
         }
-        // 空內容：視為暫時性，記為可重試後換下一個模型 / 下一輪
+        // 空內容或內容無效（壞 JSON）：視為暫時性，換下一個模型 / 下一輪
         lastStatus = 503;
-        lastDetail = 'Gemini returned empty content';
+        lastDetail = text ? 'Gemini returned invalid content' : 'Gemini returned empty content';
         lastRetryAfter = undefined;
-        console.warn(`[gemini] model=${model} round=${round} empty content, retrying`);
+        console.warn(
+          `[gemini] model=${model} round=${round} ${text ? 'invalid' : 'empty'} content, retrying`,
+        );
         continue;
       }
 
@@ -390,8 +452,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
         responseMimeType: 'application/json',
         responseSchema: readingResponseSchema(body.cards.length),
         temperature: 0.7,
+        validate: isValidReadingText,
       });
-      return response.status(200).json({ ...JSON.parse(text), model });
+      const reading = coerceReading(extractJson(text), body.cards.length);
+      return response.status(200).json({ ...reading, model });
     }
 
     // mode === 'clarification'

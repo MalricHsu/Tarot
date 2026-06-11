@@ -1156,6 +1156,17 @@
   font-size: 13px;
   color: var(--warn);
   line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.clarification-error-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
 }
 
 .result-tabs-wrap {

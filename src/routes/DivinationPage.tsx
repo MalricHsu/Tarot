@@ -121,11 +121,13 @@ function AnalysisPanel({
   clarification,
   isClarifying,
   clarificationError,
+  onRetryClarification,
 }: {
   reading: ReadingResult | null;
   clarification: string;
   isClarifying: boolean;
   clarificationError: string;
+  onRetryClarification: () => void;
 }) {
   return (
     <div className="analysis-panel">
@@ -155,7 +157,12 @@ function AnalysisPanel({
             <p className="clarification-loading-hint">賢者正凝視牌面…</p>
           </div>
         ) : clarificationError ? (
-          <p className="clarification-error">{clarificationError}</p>
+          <div className="clarification-error-wrap">
+            <p className="clarification-error">{clarificationError}</p>
+            <Button variant="secondary" size="sm" onClick={onRetryClarification}>
+              重新生成深層解析
+            </Button>
+          </div>
         ) : clarification ? (
           <ClarificationBody text={clarification} />
         ) : null}
@@ -186,6 +193,9 @@ export default function DivinationPage() {
     reading,
     usedFallback,
     fallbackMessage,
+    isRegenerating,
+    regenerateReading,
+    regenerateClarification,
     clarification,
     isClarifying,
     clarificationError,
@@ -448,8 +458,18 @@ export default function DivinationPage() {
           drawnCards={drawnCards}
           revealedCount={drawnCards.length}
         />
-        {usedFallback && fallbackMessage && (
-          <p className="fallback-banner">{fallbackMessage}</p>
+        {usedFallback && (
+          <div className="fallback-banner">
+            {fallbackMessage && <p>{fallbackMessage}</p>}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => regenerateReading()}
+              disabled={isRegenerating}
+            >
+              {isRegenerating ? "重新生成中…" : "重新生成 AI 解讀"}
+            </Button>
+          </div>
         )}
         <div className="result-tabs-wrap">
           <Segmented
@@ -467,6 +487,7 @@ export default function DivinationPage() {
               clarification={clarification}
               isClarifying={isClarifying}
               clarificationError={clarificationError}
+              onRetryClarification={() => regenerateClarification()}
             />
           )}
         </div>
