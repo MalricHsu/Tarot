@@ -426,6 +426,13 @@ function App() {
     clarificationRequestRef.current += 1;
   };
 
+  const resetToInitialHome = () => {
+    resetAll();
+    setQuestion("");
+    setView("ritual");
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
+  };
+
   const restartWithQuestion = () => {
     if (trimmedQuestion.length === 0) {
       resetAll();
@@ -1074,6 +1081,17 @@ function App() {
                   {activeResultTab === "analysis" ? renderAnalysisPanel() : null}
                   {activeResultTab === "meanings" ? renderMeaningsPanel() : null}
                 </div>
+                {phase === "done" ? (
+                  <div className="result-reset-actions">
+                    <button
+                      className="secondary-action"
+                      type="button"
+                      onClick={resetToInitialHome}
+                    >
+                      重置
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </section>

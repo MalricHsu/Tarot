@@ -4,6 +4,7 @@ import { buildInterpretation, getSpreadById } from './spread';
 
 const HISTORY_KEY = 'tarot.readingHistory.v1';
 const DAILY_CARD_KEY = 'tarot.dailyCard.v1';
+const USER_SEED_KEY = 'tarot.userSeed.v1';
 const MAX_NON_FAVORITE_HISTORY = 50;
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -66,6 +67,30 @@ function saveJson(storage: StorageLike, key: string, value: unknown): void {
   } catch {
     // Storage can be unavailable in private mode or full quota. The app should continue.
   }
+}
+
+function createUserSeed(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `seed-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function getUserSeed(storage: StorageLike | null = getStorage()): string {
+  if (!storage) return 'server-default';
+
+  const existing = storage.getItem(USER_SEED_KEY);
+  if (existing) return existing;
+
+  const seed = createUserSeed();
+  try {
+    storage.setItem(USER_SEED_KEY, seed);
+  } catch {
+    // Storage can be unavailable in private mode or full quota. The app should continue.
+  }
+
+  return seed;
 }
 
 export function loadReadingHistory(storage: StorageLike | null = getStorage()): ReadingHistoryItem[] {
@@ -171,9 +196,9 @@ function hashString(value: string): number {
   return hash >>> 0;
 }
 
-export function drawDailyCard(dateKey: string): DrawnCard {
+export function drawDailyCard(dateKey: string, userSeed = getUserSeed()): DrawnCard {
   const spread = getSpreadById('one-card-guidance');
-  const hash = hashString(dateKey);
+  const hash = hashString(`${dateKey}:${userSeed}`);
   const card = TAROT_DECK[hash % TAROT_DECK.length];
   const orientation: Orientation = Math.floor(hash / TAROT_DECK.length) % 2 === 0 ? 'upright' : 'reversed';
 
@@ -200,7 +225,8 @@ export function getDailyCardRecord(
     return existing;
   }
 
-  const reading = buildInterpretation('今日指引', [drawDailyCard(dateKey)], spread);
+  const userSeed = getUserSeed(storage);
+  const reading = buildInterpretation('今日指引', [drawDailyCard(dateKey, userSeed)], spread);
   const historyItem = createReadingHistoryItem({
     id: `daily-${dateKey}`,
     createdAt: new Date().toISOString(),

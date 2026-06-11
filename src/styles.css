@@ -1345,6 +1345,15 @@ textarea:disabled {
   font-size: 0.82rem;
 }
 
+.result-reset-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.result-reset-actions .secondary-action {
+  flex: 0 1 260px;
+}
+
 .clarification-panel {
   display: grid;
   gap: 12px;
@@ -1629,6 +1638,11 @@ textarea:disabled {
 
   .result-actions {
     grid-template-columns: 1fr;
+  }
+
+  .result-reset-actions .secondary-action {
+    width: 100%;
+    flex-basis: auto;
   }
 
   .position-summary-grid {
