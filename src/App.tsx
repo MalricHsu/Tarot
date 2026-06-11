@@ -174,11 +174,15 @@ function getGeminiFallbackMessage(error: unknown): string {
     return "目前 Vercel Function 有回應，但沒有讀到 GEMINI_API_KEY；請到 Vercel Environment Variables 設定後重新部署。";
   }
 
+  if (message.includes("504") || message.includes("timeout")) {
+    return "Gemini 回覆超時（Function 執行超過限制）；已先用本地牌義完成統整。";
+  }
+
   if (message.includes("502")) {
     return "目前 Vercel Function 已呼叫 Gemini，但 Gemini 回覆失敗、key 無效或配額/權限有問題；已先用本地牌義完成統整。";
   }
 
-  return "目前 Gemini API 沒有成功回覆；已先用本地牌義完成統整。";
+  return `目前 Gemini API 沒有成功回覆（${message}）；已先用本地牌義完成統整。`;
 }
 
 function wrapCanvasText(
