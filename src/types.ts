@@ -4,7 +4,17 @@ export type Suit = 'wands' | 'cups' | 'swords' | 'pentacles' | null;
 
 export type Orientation = 'upright' | 'reversed';
 
-export type SpreadPositionId = 'situation' | 'obstacle' | 'advice';
+export type SpreadId = 'three-card-guidance' | 'five-card-depth';
+
+export type SpreadPositionId =
+  | 'situation'
+  | 'obstacle'
+  | 'advice'
+  | 'current'
+  | 'root'
+  | 'challenge'
+  | 'resource'
+  | 'nextStep';
 
 export interface TarotCard {
   id: string;
@@ -29,6 +39,14 @@ export interface SpreadPosition {
   id: SpreadPositionId;
   label: string;
   prompt: string;
+}
+
+export interface SpreadDefinition {
+  id: SpreadId;
+  label: string;
+  description: string;
+  positions: SpreadPosition[];
+  exampleQuestions: string[];
 }
 
 export interface ReadingResult {

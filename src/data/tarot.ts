@@ -1,6 +1,6 @@
 import type { Suit, TarotCard } from '../types';
 
-const asset = (id: string) => `/cards/${id}.svg`;
+const asset = (id: string) => `${import.meta.env.BASE_URL}cards/${id}.svg`;
 
 type MajorCardSeed = readonly [
   id: string,
@@ -136,4 +136,4 @@ export const TAROT_DECK: TarotCard[] = [
   ...minorCards,
 ];
 
-export const cardBackImage = '/cards/card-back.svg';
+export const cardBackImage = asset('card-back');
