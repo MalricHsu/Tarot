@@ -92,4 +92,5 @@ export interface ReadingHistoryItem {
 export interface DailyCardRecord {
   date: string;
   historyItem: ReadingHistoryItem;
+  revealed: boolean;
 }

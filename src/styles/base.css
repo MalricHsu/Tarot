@@ -1,0 +1,377 @@
+/* ============================================================
+   燭見 — Base / Reset / 全域佈局
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: none;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 背景氛圍：極淡 noise + 稀疏星點（藍紫），固定鋪滿整個視窗（桌機延伸星空） */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(124, 109, 240, 0.5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 12%, rgba(227, 184, 115, 0.32), transparent 60%),
+    radial-gradient(1.5px 1.5px at 35% 62%, rgba(124, 109, 240, 0.4), transparent 60%),
+    radial-gradient(1.2px 1.2px at 88% 70%, rgba(243, 239, 230, 0.28), transparent 60%),
+    radial-gradient(1.5px 1.5px at 60% 88%, rgba(124, 109, 240, 0.36), transparent 60%),
+    radial-gradient(1.2px 1.2px at 22% 84%, rgba(227, 184, 115, 0.26), transparent 60%),
+    radial-gradient(1200px 800px at 50% -10%, rgba(124, 109, 240, 0.14), transparent 70%),
+    radial-gradient(900px 700px at 50% 110%, rgba(227, 184, 115, 0.08), transparent 70%);
+}
+
+/* 極淡 noise 疊層 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+button {
+  font-family: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-glow);
+}
+
+/* ---- App 框（手機框感） ---- */
+.app-shell {
+  position: relative;
+  width: min(100%, var(--frame-max));
+  margin-inline: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+}
+
+/* 桌機 / 平板：邊框與陰影強化「手機框」 */
+@media (min-width: 641px) {
+  .app-shell {
+    border-inline: 1px solid var(--border);
+    box-shadow: 0 0 80px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* 頁面內容捲動區：吃頂部安全區，底部留出 tab bar 高度 */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom) + var(--sp-2));
+}
+
+/* 沉浸模式：隱藏 tab bar 時不需底部留白 */
+.app-shell--immersive .app-main {
+  padding-bottom: 0;
+}
+
+/* ---- Page Header（§3.3） ---- */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--page-pad) 18px;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 252, 246, 0.52) 0%,
+    rgba(255, 246, 226, 0.34) 58%,
+    rgba(239, 226, 198, 0.12) 100%
+  );
+  backdrop-filter: var(--liquid-glass-blur);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 14px 32px rgba(120, 80, 35, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.54);
+}
+
+.page-header::before,
+.page-header::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.page-header::before {
+  inset: 0;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.38), transparent 30%),
+    radial-gradient(150px 38px at 20% 0%, rgba(255, 255, 255, 0.42), transparent 72%);
+  opacity: 0.58;
+}
+
+.page-header::after {
+  left: var(--page-pad);
+  right: var(--page-pad);
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--liquid-glass-highlight), transparent);
+  opacity: 0.56;
+}
+
+.page-header__title {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.page-header__action {
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+
+/* ---- Bottom Tab Bar：iOS 26 液態玻璃浮起膠囊（§3.1） ---- */
+.tab-bar {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom) + var(--sp-2));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(calc(100% - var(--sp-4) * 2), calc(var(--frame-max) - var(--sp-4) * 2));
+  height: 60px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-radius: var(--r-full);
+  overflow: hidden;
+  background: var(--liquid-glass-bg-strong);
+  backdrop-filter: var(--liquid-glass-blur);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  border: 1px solid var(--liquid-glass-border);
+  box-shadow: var(--liquid-glass-shadow);
+}
+
+.tab-bar::before,
+.tab-bar::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.tab-bar::before {
+  inset: 1px;
+  border-radius: inherit;
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.68), transparent 31%),
+    radial-gradient(180px 48px at 28% 0%, rgba(255, 255, 255, 0.72), transparent 68%),
+    radial-gradient(160px 54px at 84% 100%, rgba(201, 145, 50, 0.14), transparent 72%);
+  opacity: 0.86;
+}
+
+.tab-bar::after {
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+    inset 10px 0 22px rgba(255, 255, 255, 0.15),
+    inset -12px -10px 24px rgba(112, 77, 33, 0.07);
+}
+
+/* 滑動玻璃膠囊：較亮的鏡片，隨 --active-index 平滑移動 */
+.tab-bar__pill {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: calc((100% - 12px) / 5);
+  border-radius: var(--r-full);
+  transform: translateX(calc(var(--active-index, 0) * 100%));
+  transition: transform var(--dur-base) var(--ease-spring);
+  overflow: hidden;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 249, 238, 0.48) 46%, rgba(232, 196, 132, 0.32) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  box-shadow:
+    0 8px 22px rgba(185, 130, 46, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(120, 80, 35, 0.08);
+  pointer-events: none;
+}
+
+.tab-bar__pill::before {
+  content: "";
+  position: absolute;
+  inset: 2px 8px auto;
+  height: 16px;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.82), transparent);
+  opacity: 0.82;
+}
+
+.tab-bar__item {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.tab-bar__item.is-active {
+  color: var(--gold);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.tab-bar__item svg {
+  width: 21px;
+  height: 21px;
+}
+
+.tab-bar__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .page-header,
+  .tab-bar {
+    background: rgba(255, 250, 240, 0.94);
+  }
+}
+
+/* ---- 頁面內容容器 ---- */
+.page-body {
+  padding: var(--sp-5) var(--page-pad) var(--sp-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.page-placeholder {
+  margin-top: var(--sp-10);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.page-placeholder__tag {
+  display: inline-block;
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-strong);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--gold-soft);
+}
+
+/* ---- 玻璃感 util ---- */
+.glass {
+  background: rgba(28, 35, 51, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+/* ---- 頁面切換動效（§7） ---- */
+.route-fade {
+  animation: route-fade var(--dur-base) var(--ease-out);
+}
+
+@keyframes route-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- 尊重 prefers-reduced-motion / 設定頁「減少動畫」 ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}

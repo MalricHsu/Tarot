@@ -4,8 +4,10 @@ import { buildInterpretation, getSpreadById } from './spread';
 
 const HISTORY_KEY = 'tarot.readingHistory.v1';
 const DAILY_CARD_KEY = 'tarot.dailyCard.v1';
+const DAILY_LOG_KEY = 'tarot.dailyCardLog.v1';
 const USER_SEED_KEY = 'tarot.userSeed.v1';
 const MAX_NON_FAVORITE_HISTORY = 50;
+const MAX_DAILY_LOG = 30;
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
@@ -211,7 +213,11 @@ export function drawDailyCard(dateKey: string, userSeed = getUserSeed()): DrawnC
 
 function isDailyRecord(value: unknown): value is DailyCardRecord {
   if (!isRecord(value)) return false;
-  return typeof value.date === 'string' && isHistoryItem(value.historyItem);
+  return (
+    typeof value.date === 'string' &&
+    isHistoryItem(value.historyItem) &&
+    (typeof value.revealed === 'boolean' || typeof value.revealed === 'undefined')
+  );
 }
 
 export function getDailyCardRecord(
@@ -222,7 +228,7 @@ export function getDailyCardRecord(
   const existing = storage ? readJson(storage, DAILY_CARD_KEY) : null;
 
   if (isDailyRecord(existing) && existing.date === dateKey) {
-    return existing;
+    return { ...existing, revealed: Boolean(existing.revealed) };
   }
 
   const userSeed = getUserSeed(storage);
@@ -236,11 +242,12 @@ export function getDailyCardRecord(
     reading,
     source: 'daily',
   });
-  const record = { date: dateKey, historyItem };
+  const record = { date: dateKey, historyItem, revealed: false };
 
   if (storage) {
     saveJson(storage, DAILY_CARD_KEY, record);
     upsertReadingHistoryItem(historyItem, storage);
+    appendDailyLog(record, storage);
   }
 
   return record;
@@ -251,5 +258,65 @@ export function updateDailyCardRecord(
   storage: StorageLike | null = getStorage(),
 ): void {
   if (!storage || item.source !== 'daily') return;
-  saveJson(storage, DAILY_CARD_KEY, { date: item.id.replace(/^daily-/, ''), historyItem: item });
+  const current = readJson(storage, DAILY_CARD_KEY);
+  const record = {
+    date: item.id.replace(/^daily-/, ''),
+    historyItem: item,
+    revealed: isDailyRecord(current) ? Boolean(current.revealed) : false,
+  };
+  saveJson(storage, DAILY_CARD_KEY, record);
+  appendDailyLog(record, storage);
+}
+
+export function revealDailyCard(
+  dateKey = getTaipeiDateKey(),
+  storage: StorageLike | null = getStorage(),
+): DailyCardRecord {
+  const record = getDailyCardRecord(dateKey, storage);
+  if (record.revealed || !storage) return { ...record, revealed: true };
+  const next = { ...record, revealed: true };
+  saveJson(storage, DAILY_CARD_KEY, next);
+  appendDailyLog(next, storage);
+  return next;
+}
+
+/** 多天每日牌紀錄（供每日頁日曆回顧）。最新的在前，最多保留 MAX_DAILY_LOG 天。 */
+export function loadDailyCardLog(storage: StorageLike | null = getStorage()): DailyCardRecord[] {
+  if (!storage) return [];
+  const parsed = readJson(storage, DAILY_LOG_KEY);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(isDailyRecord);
+}
+
+function appendDailyLog(record: DailyCardRecord, storage: StorageLike): void {
+  const existing = loadDailyCardLog(storage).filter((entry) => entry.date !== record.date);
+  const next = [record, ...existing]
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .slice(0, MAX_DAILY_LOG);
+  saveJson(storage, DAILY_LOG_KEY, next);
+}
+
+/** 清空今日指引快取（單天 key + 多天 log）。 */
+export function clearDailyCardCache(storage: StorageLike | null = getStorage()): void {
+  if (!storage) return;
+  storage.removeItem(DAILY_CARD_KEY);
+  storage.removeItem(DAILY_LOG_KEY);
+}
+
+/** 取得目前使用者種子（公開版，設定頁顯示用）。 */
+export function getUserSeedValue(storage: StorageLike | null = getStorage()): string {
+  return getUserSeed(storage);
+}
+
+/** 重設使用者種子 → 每日牌會重新洗牌。同時清掉今日快取讓新種子立即生效。 */
+export function resetUserSeed(storage: StorageLike | null = getStorage()): string {
+  if (!storage) return 'server-default';
+  const seed = createUserSeed();
+  try {
+    storage.setItem(USER_SEED_KEY, seed);
+  } catch {
+    // ignore
+  }
+  clearDailyCardCache(storage);
+  return seed;
 }

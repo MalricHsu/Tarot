@@ -240,24 +240,20 @@ export function buildClarificationFallback(
     cards.find((item) => item.position.id === 'guidance') ??
     cards[cards.length - 1];
 
-  return `# 核心訊息
-針對「${normalizedQuestion}」，${spread.label}主要提醒你：先把問題從情緒或想像拉回可觀察的現實。這組牌不是要替你決定結果，而是指出目前最需要被看見的模式，以及下一步可以如何調整。
+  return `# 重點摘要
+針對「${normalizedQuestion}」：先把問題從情緒和想像拉回可觀察的現實。最關鍵的一步是處理${challengeCard.card.keywords[0]}，然後順著${nextCard.card.nameZh}的方向做一個具體調整。
 
-# 牌意解析
+# 牌面解讀
 ${cardLines.join('\n')}
 
-# 問題分析
-你現在可能卡在「知道自己有感覺，但還沒有把感覺整理成判斷依據」。${challengeCard.card.nameZh}提示的${challengeCard.card.keywords[0]}是這次最需要釐清的地方：它可能代表拖延、過度猜測、期待別人給答案，或忽略了真正的限制條件。
+# 你的處境
+你現在大概卡在「知道自己有感覺，但還沒把感覺整理成判斷依據」。${challengeCard.card.nameZh}指出的${challengeCard.card.keywords[0]}是這次最需要釐清的地方——可能是拖延、過度猜測、等別人給答案，或忽略了真正的限制。同時，${nextCard.card.nameZh}提示你手上其實有可用的資源，只是還沒接上。
 
-# 可能發展
-如果你繼續用原本方式處理，事情大多會沿著目前的慣性前進，卡點也會重複出現。若你願意把問題拆小、補齊資訊，並用更清楚的界線行動，${nextCard.card.nameZh}所代表的方向會比較容易成為可用資源。
+# 接下來怎麼做
+1. 寫下三個已知事實，和三個只是你的猜測——分清楚這兩者。
+2. 把最擔心的結果改寫成一個可以實際驗證的問題。
+3. 選一個 24 小時內能完成的小行動，先動起來，不要要求自己一次解決全部。
 
-# 行動建議
-1. 先寫下三個已知事實，和三個只是猜測的部分。
-2. 把最擔心的結果改寫成可以驗證的問題。
-3. 選一個 24 小時內能完成的小行動，不要一次要求自己解決全部。
-4. 若問題涉及醫療、法律或投資，請把塔羅當反思輔助，實際決策要諮詢合格專業人士。
-
-# 結論
-這組牌的重點不是叫你等待命運給答案，而是提醒你把注意力放回可掌握的選擇。先處理${challengeCard.card.keywords[0]}，再順著${nextCard.card.nameZh}提示的方向做一個具體調整，答案會比現在更清楚。`;
+# 一句收尾
+答案不在命運手上，在你接下來那個具體選擇裡。先處理${challengeCard.card.keywords[0]}，事情就會比現在清楚。`;
 }
