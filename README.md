@@ -40,6 +40,30 @@ npm run dev
 vercel dev
 ```
 
+## Gemini Key 部署檢查
+
+部署前請確認 Vercel 專案的 Environment Variables 已設定 `GEMINI_API_KEY`。修改或新增環境變數後，需要重新部署，新的部署才會讀到更新後的值。
+
+部署後可用健康檢查端點確認部署環境是否有讀到 key：
+
+```bash
+curl https://你的網域/api/gemini-health
+```
+
+若 key 已設定，回應會是：
+
+```json
+{ "configured": true }
+```
+
+若 key 未設定，回應會是：
+
+```json
+{ "configured": false, "error": "GEMINI_API_KEY is not configured" }
+```
+
+這個檢查只確認部署環境「有設定」`GEMINI_API_KEY`，不會實際呼叫 Gemini，因此不消耗配額；它也不能確認 key 是否有效、權限是否正確或配額是否正常。
+
 ## 部署到 Vercel
 
 1. 將專案匯入 Vercel。

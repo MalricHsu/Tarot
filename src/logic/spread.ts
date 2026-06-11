@@ -79,11 +79,17 @@ export function buildInterpretation(
   cards: DrawnCard[],
   spread: SpreadDefinition = getSpreadById('three-card-guidance'),
 ): ReadingResult {
-  const normalizedQuestion = question.trim();
+  const normalizedQuestion = question.trim() || '這個問題';
   const interpretations = cards.map(({ card, orientation, position }) => {
     const meaning = orientation === 'upright' ? card.uprightMeaning : card.reversedMeaning;
     const direction = orientation === 'upright' ? '正位' : '逆位';
-    return `${position.label} - ${card.nameZh}${direction}：${position.prompt}${meaning}`;
+    const orientationFocus =
+      orientation === 'upright'
+        ? `以正位出現時，${card.nameZh}把焦點放在${meaning}，提醒你這股力量已經可以被看見，也可能正在成為推動局面的主要資源。`
+        : `以逆位出現時，${card.nameZh}把焦點放在${meaning}，提醒你先辨認受阻、失衡或尚未整合的部分，不必急著把它解讀成壞結果。`;
+    const keyword = card.keywords[0];
+
+    return `【${card.nameZh}｜${direction}】在「${position.label}」的位置上，這張牌先回應的是「${normalizedQuestion}」裡最需要被照亮的一層。${position.prompt}因此它不是單純描述事件會如何發生，而是在指出你此刻與問題互動的方式：哪些感受正在浮現，哪些判斷還需要沉澱，哪些現實條件不宜被忽略。${orientationFocus}放回你的提問來看，${keyword}可能是這張牌最想讓你停下來觀察的線索；它也許代表你已經握有某種能力，或正被同一種模式反覆牽動。這張牌的提醒是，先不要急著追問唯一答案，而是把注意力放回可驗證的事實、身體的反應與真實需求。接下來，你可以問自己：我正在害怕什麼，又有哪些選項其實已經在眼前？若願意把問題拆小，從一個可完成的行動開始，${card.nameZh}會成為一面鏡子，幫你看清下一步該帶著什麼態度前進。`;
   });
 
   const nextCard =

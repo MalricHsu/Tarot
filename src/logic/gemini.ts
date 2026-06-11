@@ -38,14 +38,15 @@ ${cards.map((card, index) => formatCardPayload(card, index, question, 'oracle'))
 - 若涉及醫療、法律、投資等高風險主題，只能提供反思角度，並提醒使用者尋求合格專業意見。
 
 請回傳 JSON 格式，包含 interpretations 與 summary。
-interpretations 必須剛好有 ${cards.length} 個字串，依照抽牌順序對應每張牌，每段約 200-400 字。
+interpretations 必須剛好有 ${cards.length} 個字串，依照抽牌順序對應每張牌，每段約 350-600 字。
 每個 interpretations[index] 必須依序包含：
 1. 【牌卡名稱｜正位/逆位】
-2. 牌面意象描述
-3. 命運訊息
-4. 隱藏課題
-5. 結尾祝福
-summary 是針對這個問題與整個牌陣的神諭式總結，約 200-400 字；請保持象徵性與安定感，仍避免絕對預言。`;
+2. 牌位意義與這張牌在牌陣中的角色
+3. 正位或逆位的核心含義
+4. 與使用者問題的具體關聯
+5. 這張牌指出的提醒、課題或需要看見的模式
+6. 可反思或可嘗試的下一步
+summary 是針對這個問題與整個牌陣的神諭式總結，約 250-450 字；請保持象徵性與安定感，仍避免絕對預言。`;
 }
 
 export function buildClarificationPrompt(

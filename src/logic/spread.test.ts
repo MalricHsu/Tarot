@@ -71,6 +71,12 @@ describe('buildInterpretation', () => {
 
     expect(result.interpretations).toHaveLength(3);
     expect(result.summary).toContain('工作選擇');
+    expect(result.interpretations[0].length).toBeGreaterThan(180);
+    expect(result.interpretations[0]).toContain('工作選擇');
+    expect(result.interpretations[0]).toContain(cards[0].position.label);
+    expect(result.interpretations[0]).toContain(cards[0].card.nameZh);
+    expect(result.interpretations[0]).toMatch(/正位|逆位/);
+    expect(result.interpretations[0]).toContain('接下來');
   });
 
   it('returns one fallback interpretation per five-card spread position', () => {
@@ -80,6 +86,13 @@ describe('buildInterpretation', () => {
 
     expect(result.interpretations).toHaveLength(5);
     expect(result.summary).toContain('五張深入指引');
+    for (const [index, interpretation] of result.interpretations.entries()) {
+      expect(interpretation.length).toBeGreaterThan(180);
+      expect(interpretation).toContain(cards[index].position.label);
+      expect(interpretation).toContain(cards[index].card.nameZh);
+      expect(interpretation).toMatch(/正位|逆位/);
+      expect(interpretation).toContain('我現在卡住的原因');
+    }
   });
 });
 
@@ -122,9 +135,15 @@ describe('buildReadingPrompt', () => {
     expect(prompt).toContain('不要宣稱能準確預測未來');
     expect(prompt).toContain('醫療、法律、投資');
     expect(prompt).toContain('interpretations 必須剛好有 5 個字串');
-    expect(prompt).toContain('每段約 200-400 字');
+    expect(prompt).toContain('每段約 350-600 字');
     expect(prompt).toContain('【牌卡名稱｜正位/逆位】');
+    expect(prompt).toContain('牌位意義與這張牌在牌陣中的角色');
+    expect(prompt).toContain('正位或逆位的核心含義');
+    expect(prompt).toContain('與使用者問題的具體關聯');
+    expect(prompt).toContain('這張牌指出的提醒、課題或需要看見的模式');
+    expect(prompt).toContain('可反思或可嘗試的下一步');
     expect(prompt).toContain('summary 是針對這個問題與整個牌陣的神諭式總結');
+    expect(prompt).toContain('約 250-450 字');
   });
 });
 
