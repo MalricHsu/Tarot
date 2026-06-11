@@ -58,7 +58,13 @@ type GeminiRequestPayload =
       reading: Omit<ReadingResult, 'cards'>;
     };
 
-async function requestGemini<T>(payload: GeminiRequestPayload): Promise<T> {
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// 後端已對 429/503 做重試；前端再加一層保險，吸收網路抖動與偶發 503。
+const CLIENT_MAX_RETRIES = 2;
+const CLIENT_RETRY_DELAYS_MS = [1500, 3000] as const;
+
+async function requestGeminiOnce<T>(payload: GeminiRequestPayload): Promise<T> {
   const response = await fetch('/api/gemini', {
     method: 'POST',
     headers: {
@@ -94,6 +100,28 @@ async function requestGemini<T>(payload: GeminiRequestPayload): Promise<T> {
   }
 
   throw makeGeminiError(response.status, serverError, retryable, retryAfterSeconds);
+}
+
+/** 是否值得前端自動重試：網路錯誤，或可重試的 503（429 硬額度不重試）。 */
+function shouldClientRetry(error: unknown): boolean {
+  if (!isGeminiApiError(error)) return true; // fetch 本身拋錯（網路斷）→ 重試
+  if (error.httpStatus === 503 && error.retryable) return true;
+  return false;
+}
+
+async function requestGemini<T>(payload: GeminiRequestPayload): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= CLIENT_MAX_RETRIES; attempt += 1) {
+    try {
+      return await requestGeminiOnce<T>(payload);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= CLIENT_MAX_RETRIES || !shouldClientRetry(error)) break;
+      console.warn(`[gemini] client retry ${attempt + 1}/${CLIENT_MAX_RETRIES}`);
+      await sleep(CLIENT_RETRY_DELAYS_MS[attempt] ?? 3000);
+    }
+  }
+  throw lastError;
 }
 
 // ── Public API ─────────────────────────────────────────────────

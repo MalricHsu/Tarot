@@ -248,6 +248,35 @@ function isFallbackableStatus(status: number): boolean {
   return status === 429 || status === 503;
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// 每輪掃過所有模型；全部暫時失敗才退避後重試，避免免費層偶發 429/503 直接放棄。
+const MAX_ROUNDS = 3;
+const BACKOFF_BASE_MS = [1200, 2500] as const;
+const BACKOFF_CAP_MS = 6000;
+// 429 的 retryDelay 超過此秒數，視為硬性額度用盡，不空等（會燒掉函式預算）。
+const HARD_QUOTA_THRESHOLD_S = 6;
+
+/**
+ * 計算下一輪重試前的等待毫秒數。
+ * 回傳 null = 不該再等（硬性額度用盡），呼叫端應直接放棄。
+ */
+function computeBackoff(
+  round: number,
+  lastStatus: number,
+  lastRetryAfter: number | undefined,
+): number | null {
+  if (lastStatus === 429 && typeof lastRetryAfter === 'number') {
+    if (lastRetryAfter > HARD_QUOTA_THRESHOLD_S) return null;
+  }
+  const base = BACKOFF_BASE_MS[round] ?? 4000;
+  const fromRetryAfter =
+    typeof lastRetryAfter === 'number' && lastRetryAfter <= HARD_QUOTA_THRESHOLD_S
+      ? lastRetryAfter * 1000
+      : 0;
+  return Math.min(Math.max(base, fromRetryAfter), BACKOFF_CAP_MS);
+}
+
 async function callGeminiWithFallback(
   apiKey: string,
   prompt: string,
@@ -266,49 +295,70 @@ async function callGeminiWithFallback(
     generationConfig,
   });
 
-  let lastStatus = 500;
+  let lastStatus = 503;
   let lastDetail = '';
   let lastRetryAfter: number | undefined;
 
-  for (const model of GEMINI_MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: requestBody,
-    });
+  for (let round = 0; round < MAX_ROUNDS; round += 1) {
+    for (const model of GEMINI_MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      });
 
-    if (res.ok) {
-      const data = (await res.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      };
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-      if (!text) throw new Error('Gemini returned empty content');
-      console.log(`[gemini] success with model: ${model}`);
-      return { text, model };
+      if (res.ok) {
+        const data = (await res.json()) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        if (text) {
+          console.log(`[gemini] success with model=${model} round=${round}`);
+          return { text, model };
+        }
+        // 空內容：視為暫時性，記為可重試後換下一個模型 / 下一輪
+        lastStatus = 503;
+        lastDetail = 'Gemini returned empty content';
+        lastRetryAfter = undefined;
+        console.warn(`[gemini] model=${model} round=${round} empty content, retrying`);
+        continue;
+      }
+
+      const detail = await res.text().catch(() => '');
+      lastStatus = res.status;
+      lastDetail = detail;
+      lastRetryAfter = parseRetryAfterSeconds(detail);
+
+      console.warn(`[gemini] model=${model} round=${round} status=${res.status}`);
+
+      // 非 fallbackable 錯誤（400、401、403 等）：直接拋出，不繼續嘗試
+      if (!isFallbackableStatus(res.status)) {
+        throw Object.assign(
+          new Error(`Gemini API error ${res.status}: ${detail}`),
+          { status: res.status, detail },
+        );
+      }
+
+      // 是 429/503：繼續嘗試下一個模型（無需等待，下一個模型不共用 quota）
     }
 
-    const detail = await res.text().catch(() => '');
-    lastStatus = res.status;
-    lastDetail = detail;
-    lastRetryAfter = parseRetryAfterSeconds(detail);
-
-    console.warn(`[gemini] model=${model} status=${res.status}`);
-
-    // 非 fallbackable 錯誤（400、401、403 等）：直接拋出，不繼續嘗試
-    if (!isFallbackableStatus(res.status)) {
-      throw Object.assign(
-        new Error(`Gemini API error ${res.status}: ${detail}`),
-        { status: res.status, detail },
-      );
+    // 本輪所有模型都暫時失敗（429/503/空內容）。還有輪次才退避重試。
+    if (round < MAX_ROUNDS - 1) {
+      const waitMs = computeBackoff(round, lastStatus, lastRetryAfter);
+      if (waitMs === null) {
+        // 硬性額度用盡，再等也沒用，直接跳出回 429
+        console.warn(`[gemini] hard quota (retryDelay=${lastRetryAfter}s), giving up early`);
+        break;
+      }
+      console.warn(`[gemini] round=${round} exhausted, backoff ${waitMs}ms`);
+      await sleep(waitMs);
     }
-
-    // 是 429/503：繼續嘗試下一個模型（無需等待，下一個模型不共用 quota）
   }
 
-  // 所有模型都失敗
+  // 所有輪次都失敗
   const err = Object.assign(
-    new Error(`All Gemini models exhausted. Last status: ${lastStatus}`),
+    new Error(`All Gemini attempts exhausted. Last status: ${lastStatus}`),
     { status: lastStatus, detail: lastDetail, retryAfterSeconds: lastRetryAfter },
   );
   throw err;
