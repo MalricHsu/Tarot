@@ -212,29 +212,47 @@ async function callGemini(
   if (config.responseMimeType) generationConfig.responseMimeType = config.responseMimeType;
   if (config.responseSchema) generationConfig.responseSchema = config.responseSchema;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig,
-      }),
-    },
-  );
+  const requestBody = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig,
+  });
 
-  if (!res.ok) {
+  // 針對暫時性過載（429/503）做指數退避重試，避免尖峰時直接落回本地牌義。
+  const maxAttempts = 3;
+  let lastError = '';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      },
+    );
+
+    if (res.ok) {
+      const data = (await res.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      if (!text) throw new Error('Gemini returned empty content');
+      return text;
+    }
+
     const detail = await res.text().catch(() => '');
-    throw new Error(`Gemini REST API error ${res.status}: ${detail}`);
+    lastError = `Gemini REST API error ${res.status}: ${detail}`;
+
+    const isRetryable = res.status === 429 || res.status === 503;
+    if (!isRetryable || attempt === maxAttempts - 1) {
+      throw new Error(lastError);
+    }
+
+    // 退避：0.6s、1.2s（加少量抖動）後重試。
+    const delayMs = 600 * 2 ** attempt + Math.random() * 200;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  const data = (await res.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-  if (!text) throw new Error('Gemini returned empty content');
-  return text;
+  throw new Error(lastError || 'Gemini request failed');
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
