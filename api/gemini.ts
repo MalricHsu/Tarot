@@ -1,4 +1,3 @@
-import { GoogleGenAI, Type, type Schema } from '@google/genai';
 import { buildClarificationPrompt, buildReadingPrompt } from '../src/logic/gemini';
 import type { DrawnCard, ReadingResult, SpreadDefinition } from '../src/types';
 
@@ -28,26 +27,22 @@ type GeminiRequestBody =
       reading: Omit<ReadingResult, 'cards'>;
     };
 
-const readingResponseSchema = (cardCount: number): Schema => ({
-  type: Type.OBJECT,
+const readingResponseSchema = (cardCount: number) => ({
+  type: 'OBJECT',
   properties: {
     interpretations: {
-      type: Type.ARRAY,
+      type: 'ARRAY',
       description: `相容欄位，必須剛好包含 ${cardCount} 個字串元素；每個元素只需簡短概括單張牌在牌陣中的作用。`,
-      items: {
-        type: Type.STRING,
-      },
+      items: { type: 'STRING' },
     },
     summary: {
-      type: Type.STRING,
+      type: 'STRING',
       description: '針對使用者問題、牌陣位置與全部抽牌的主要整體解簽。',
     },
     actions: {
-      type: Type.ARRAY,
+      type: 'ARRAY',
       description: '剛好 3 個具體、可在 24-72 小時內執行的行動。',
-      items: {
-        type: Type.STRING,
-      },
+      items: { type: 'STRING' },
     },
   },
   required: ['interpretations', 'summary', 'actions'],
@@ -69,12 +64,51 @@ function isValidBody(body: unknown): body is GeminiRequestBody {
 
 function getBody(body: unknown): unknown {
   if (typeof body !== 'string') return body;
-
   try {
     return JSON.parse(body);
   } catch {
     return null;
   }
+}
+
+async function callGemini(
+  apiKey: string,
+  prompt: string,
+  config: {
+    responseMimeType?: string;
+    responseSchema?: object;
+    temperature: number;
+  },
+): Promise<string> {
+  const generationConfig: Record<string, unknown> = {
+    temperature: config.temperature,
+  };
+  if (config.responseMimeType) generationConfig.responseMimeType = config.responseMimeType;
+  if (config.responseSchema) generationConfig.responseSchema = config.responseSchema;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Gemini REST API error ${res.status}: ${detail}`);
+  }
+
+  const data = (await res.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  if (!text) throw new Error('Gemini returned empty content');
+  return text;
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -94,46 +128,25 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return response.status(400).json({ error: 'Invalid request body' });
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-
   try {
     if (body.mode === 'reading') {
       const prompt = buildReadingPrompt(body.question, body.cards, body.spread);
-      const geminiResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: readingResponseSchema(body.cards.length),
-          temperature: 0.7,
-        },
+      const text = await callGemini(apiKey, prompt, {
+        responseMimeType: 'application/json',
+        responseSchema: readingResponseSchema(body.cards.length),
+        temperature: 0.7,
       });
-
-      const text = geminiResponse.text;
-      if (!text) {
-        throw new Error('Gemini returned an empty reading response');
-      }
-
       return response.status(200).json(JSON.parse(text));
     }
 
     const prompt = buildClarificationPrompt(body.question, body.cards, body.spread, body.reading);
-    const geminiResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.65,
-      },
-    });
-
-    const clarification = geminiResponse.text?.trim();
-    if (!clarification) {
-      throw new Error('Gemini returned an empty clarification response');
-    }
-
-    return response.status(200).json({ clarification });
+    const clarification = await callGemini(apiKey, prompt, { temperature: 0.65 });
+    const trimmed = clarification.trim();
+    if (!trimmed) throw new Error('Gemini returned empty clarification');
+    return response.status(200).json({ clarification: trimmed });
   } catch (error) {
     console.error('Gemini proxy failed:', error);
-    return response.status(502).json({ error: 'Gemini request failed' });
+    const message = error instanceof Error ? error.message : String(error);
+    return response.status(502).json({ error: `Gemini request failed: ${message}` });
   }
 }
