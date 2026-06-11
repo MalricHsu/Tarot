@@ -320,7 +320,7 @@ export default function DivinationPage() {
       <div className="phase-choosing">
         <div className="choosing-header">
           <div>
-            <p className="choosing-kicker">選牌中</p>
+            <p className="choosing-kicker">抽取塔羅牌中</p>
             <p className="choosing-title">請抽 {cardsToChoose} 張</p>
           </div>
           <span
@@ -361,7 +361,7 @@ export default function DivinationPage() {
           </div>
 
           <div className="draw-selected" aria-label="已抽出的牌">
-            <p className="draw-selected__label">已選牌</p>
+            <p className="choosing-title">已選牌</p>
             <div className="draw-selected__slots">
               {Array.from({ length: cardsToChoose }, (_, i) => {
                 const slot = selectedSlots[i];

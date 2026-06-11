@@ -47,7 +47,7 @@ export default function LibraryPage() {
 
   return (
     <>
-      <PageHeader title="牌庫" />
+      <PageHeader title="塔羅牌庫" />
       <div className="page-body">
         <div className="library-search">
           <Search size={16} />

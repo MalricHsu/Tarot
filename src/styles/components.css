@@ -884,6 +884,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 2px;
+  font-family: var(--font-serif);
 }
 
 .choosing-title {
@@ -896,8 +897,8 @@
   font-size: 22px;
   font-weight: 700;
   color: var(--gold);
-  font-family: var(--font-sans);
   letter-spacing: -0.02em;
+  font-family: var(--font-serif);
 }
 
 .choosing-fan-wrap {

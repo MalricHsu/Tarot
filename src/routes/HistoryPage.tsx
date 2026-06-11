@@ -51,7 +51,7 @@ export default function HistoryPage() {
   return (
     <>
       <PageHeader
-        title="紀錄"
+        title="解讀紀錄"
         action={
           historyItems.length > 0 ? (
             <Button variant="ghost" size="sm" onClick={() => setConfirmClear(true)}>

@@ -11,7 +11,7 @@ export default function SpreadLayout({ drawnCards, revealedCount }: SpreadLayout
   if (!drawnCards.length) return null;
 
   return (
-    <div className="spread-layout" role="list" aria-label="牌陣展開">
+    <div className="spread-layout" role="list" aria-label="塔羅牌陣展開">
       {drawnCards.map((draw, i) => {
         const isFaceUp = revealedCount > i;
         return (
