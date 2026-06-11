@@ -206,6 +206,8 @@ async function callGemini(
 ): Promise<string> {
   const generationConfig: Record<string, unknown> = {
     temperature: config.temperature,
+    // 關閉 2.5 Flash 預設的思考模式，省去推理延遲，大幅加快回應速度。
+    thinkingConfig: { thinkingBudget: 0 },
   };
   if (config.responseMimeType) generationConfig.responseMimeType = config.responseMimeType;
   if (config.responseSchema) generationConfig.responseSchema = config.responseSchema;
