@@ -17,7 +17,10 @@ cardName: "${card.card.nameZh}"
 orientation: "${orientation}"
 spreadPosition: "${card.position.label}"
 positionPrompt: "${card.position.prompt}"
-cardMeaning: "${meaning}"`;
+cardMeaning: "${meaning}"
+visualDescription: "${card.card.visualDescription}"
+cardMessage: "${card.card.cardMessage}"
+generalInterpretation: "${card.card.generalInterpretation}"`;
 }
 
 export function buildReadingPrompt(question: string, cards: DrawnCard[], spread: SpreadDefinition): string {
@@ -26,27 +29,21 @@ export function buildReadingPrompt(question: string, cards: DrawnCard[], spread:
 使用的牌陣是：「${spread.label}」。
 牌陣說明：${spread.description}
 
-抽到的牌如下，請依序解讀：
+抽到的牌如下，這些牌的基本牌義會由本地資料直接顯示；你只需要參考它們來做整體統整：
 ${cards.map((card, index) => formatCardPayload(card, index, question, 'oracle')).join('\n\n')}
 
-請根據牌陣位置、正逆位、牌面意象與使用者問題進行解讀。
+請根據使用者問題、牌陣位置、正逆位、牌面意象與全部抽牌之間的關係，產生整體解簽。
 風格要求：
 - 語氣要神秘、優雅、象徵化，像神諭低聲指出道路，但仍保有溫度。
-- 不要使用條列式、編號列表或過度白話的教學口吻；每張牌請寫成流動的段落。
+- 不要使用條列式、編號列表或過度白話的教學口吻；請寫成流動的段落。
 - 不要做絕對預言，不要使用恐嚇或操控式說法。
 - 不要宣稱能準確預測未來，只能描述可能的象徵、提醒與反思方向。
 - 若涉及醫療、法律、投資等高風險主題，只能提供反思角度，並提醒使用者尋求合格專業意見。
 
-請回傳 JSON 格式，包含 interpretations 與 summary。
-interpretations 必須剛好有 ${cards.length} 個字串，依照抽牌順序對應每張牌，每段約 350-600 字。
-每個 interpretations[index] 必須依序包含：
-1. 【牌卡名稱｜正位/逆位】
-2. 牌位意義與這張牌在牌陣中的角色
-3. 正位或逆位的核心含義
-4. 與使用者問題的具體關聯
-5. 這張牌指出的提醒、課題或需要看見的模式
-6. 可反思或可嘗試的下一步
-summary 是針對這個問題與整個牌陣的神諭式總結，約 250-450 字；請保持象徵性與安定感，仍避免絕對預言。`;
+請回傳 JSON 格式，包含 interpretations、summary 與 actions。
+interpretations 只是相容欄位，必須剛好有 ${cards.length} 個字串，依照抽牌順序各用 1 句話概括該牌在牌陣中的作用即可，每句 40-80 字，不要取代本地固定牌義。
+summary 是主要輸出，請針對這個問題與整個牌陣做神諭式總解，約 350-650 字；請整合每張牌的互動關係、主要卡點、可用資源與下一步提醒，保持象徵性與安定感，仍避免絕對預言。
+actions 必須剛好有 3 個字串，每個都是具體、可在 24-72 小時內執行的行動，不要空泛祝福或預言。`;
 }
 
 export function buildClarificationPrompt(
@@ -105,11 +102,19 @@ export async function generateReading(
     spread,
   });
 
-  if (!Array.isArray(result.interpretations) || typeof result.summary !== 'string') {
+  if (
+    !Array.isArray(result.interpretations) ||
+    typeof result.summary !== 'string' ||
+    !Array.isArray(result.actions)
+  ) {
     throw new Error('Gemini 回傳格式不正確');
   }
 
-  return result;
+  return {
+    interpretations: result.interpretations,
+    summary: result.summary,
+    actions: result.actions.filter((item): item is string => typeof item === 'string').slice(0, 3),
+  };
 }
 
 export async function generateClarification(
@@ -158,7 +163,17 @@ async function requestGemini<T>(payload: GeminiRequestPayload): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini proxy request failed: ${response.status}`);
+    let errorDetail = '';
+    try {
+      const data = (await response.json()) as { error?: unknown };
+      if (typeof data.error === 'string') {
+        errorDetail = `: ${data.error}`;
+      }
+    } catch {
+      errorDetail = '';
+    }
+
+    throw new Error(`Gemini proxy request failed: ${response.status}${errorDetail}`);
   }
 
   return (await response.json()) as T;

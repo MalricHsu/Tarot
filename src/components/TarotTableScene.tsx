@@ -18,6 +18,7 @@ interface TarotTableSceneProps {
   selectedSpread: SpreadDefinition;
   cardBackImage: string;
   onChooseCard: (slotId: string) => void;
+  variant?: 'full' | 'choiceOnly';
 }
 
 function getStatusText(phase: RitualPhase, selectedSpread: SpreadDefinition, selectedCount: number) {
@@ -38,6 +39,7 @@ export default function TarotTableScene({
   selectedSpread,
   cardBackImage,
   onChooseCard,
+  variant = 'full',
 }: TarotTableSceneProps) {
   const selectedSlots = useMemo(
     () =>
@@ -56,6 +58,42 @@ export default function TarotTableScene({
       }));
   const statusText = getStatusText(phase, selectedSpread, selectedIds.length);
   const canChoose = phase === 'choosing' && selectedIds.length < selectedSpread.positions.length;
+  const choiceScene = phase === 'choosing' ? (
+    <div className="choice-scene">
+      <div className="choice-heading">
+        <p>點選牌背，依序放入牌位</p>
+        <span>{selectedIds.length}/{selectedSpread.positions.length}</span>
+      </div>
+      <div className="card-choice-grid" aria-label="可選牌背">
+        {choiceSlots.map((slot, index) => {
+          const selectedOrder = selectedIds.indexOf(slot.id);
+          const isSelected = selectedOrder >= 0;
+
+          return (
+            <button
+              className={`fan-card${isSelected ? ' is-selected' : ''}`}
+              key={slot.id}
+              type="button"
+              onClick={() => onChooseCard(slot.id)}
+              disabled={isSelected || !canChoose}
+              aria-label={isSelected ? `第 ${selectedOrder + 1} 張已選` : `選擇第 ${index + 1} 張牌`}
+            >
+              <img src={cardBackImage} alt="" />
+              {isSelected ? <span>{selectedOrder + 1}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+  if (variant === 'choiceOnly') {
+    return (
+      <section className="choice-only-scene" aria-label="選擇塔羅牌">
+        {choiceScene}
+      </section>
+    );
+  }
 
   return (
     <section className={`tarot-table-scene tarot-table-scene-2d phase-${phase}`} aria-label="2D燭光塔羅桌">
@@ -87,34 +125,7 @@ export default function TarotTableScene({
         </div>
       ) : null}
 
-      {phase === 'choosing' ? (
-        <div className="choice-scene">
-          <div className="choice-heading">
-            <p>點選牌背，依序放入牌位</p>
-            <span>{selectedIds.length}/{selectedSpread.positions.length}</span>
-          </div>
-          <div className="card-choice-grid" aria-label="可選牌背">
-            {choiceSlots.map((slot, index) => {
-              const selectedOrder = selectedIds.indexOf(slot.id);
-              const isSelected = selectedOrder >= 0;
-
-              return (
-                <button
-                  className={`fan-card${isSelected ? ' is-selected' : ''}`}
-                  key={slot.id}
-                  type="button"
-                  onClick={() => onChooseCard(slot.id)}
-                  disabled={isSelected || !canChoose}
-                  aria-label={isSelected ? `第 ${selectedOrder + 1} 張已選` : `選擇第 ${index + 1} 張牌`}
-                >
-                  <img src={cardBackImage} alt="" />
-                  {isSelected ? <span>{selectedOrder + 1}</span> : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      {choiceScene}
 
       <div className={`table-slots slots-${selectedSpread.positions.length}`} aria-label="牌位區">
         {selectedSpread.positions.map((position, index) => {

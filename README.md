@@ -34,11 +34,41 @@ npm install
 npm run dev
 ```
 
-若要在本機測試 `/api/gemini`，建議使用 Vercel CLI，並在本機環境設定 `GEMINI_API_KEY`：
+這個模式只測 React/Vite 前端互動。`npm run dev` 不會執行 Vercel Function，所以 `/api/gemini` 預期會失敗，畫面會改用本地 fallback，不代表 Vercel 上一定失敗。
+
+若要在本機測試 `/api/gemini`，請使用 Vercel CLI，並在本機環境設定 `GEMINI_API_KEY`：
 
 ```bash
-vercel dev
+npm run dev:vercel
 ```
+
+`npm run dev:vercel` 才會同時測前端與 Vercel Function。
+
+## 兩種測試方式
+
+### 1. npm run dev：測前端與 fallback
+
+```bash
+npm run dev
+```
+
+測試重點：
+
+- 抽牌流程是否正常。
+- 逐張牌是否都有「牌面長相」「這張牌在說什麼」「一般解讀」。
+- Gemini 失敗時是否不空白，並改用本地統整。
+
+此模式不作為 Gemini API 是否接通的判斷依據。
+
+### 2. Vercel 網址：測 Gemini API 是否真的接通
+
+部署到 Vercel 後，用正式網址測：
+
+```bash
+curl https://你的網域/api/gemini-health
+```
+
+若回傳 `{ "configured": true }`，代表 Vercel 環境有讀到 `GEMINI_API_KEY`。接著在 Vercel 網址上實際抽牌，如果沒有出現 fallback 提示，就代表 Gemini reading 成功；如果出現 Vercel/Gemini 失敗提示，請檢查 key、權限、配額或模型請求。
 
 ## Gemini Key 部署檢查
 

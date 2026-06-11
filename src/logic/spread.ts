@@ -23,7 +23,45 @@ export const fiveCardPositions: SpreadPosition[] = [
   { id: 'nextStep', label: '下一步', prompt: '這張牌給出接下來最適合採取的態度與行動方向。' },
 ];
 
+export const oneCardPositions: SpreadPosition[] = [
+  { id: 'guidance', label: '今日指引', prompt: '這張牌濃縮此刻最需要看見的提醒與可執行方向。' },
+];
+
+export const relationshipPositions: SpreadPosition[] = [
+  { id: 'self', label: '你的狀態', prompt: '這張牌反映你在這段互動中的感受、期待與盲點。' },
+  { id: 'other', label: '對方狀態', prompt: '這張牌描述對方可能呈現出的態度、需求或防衛。' },
+  { id: 'connection', label: '關係能量', prompt: '這張牌指出雙方之間正在流動或卡住的核心模式。' },
+  { id: 'challenge', label: '關係挑戰', prompt: '這張牌提醒目前最需要被誠實面對的阻力與誤解。' },
+  { id: 'nextStep', label: '下一步', prompt: '這張牌給出較適合這段關係的溝通與行動方向。' },
+];
+
+export const careerPositions: SpreadPosition[] = [
+  { id: 'careerCurrent', label: '工作現況', prompt: '這張牌描繪目前工作、事業或職涯選擇的整體狀態。' },
+  { id: 'careerStrength', label: '可用優勢', prompt: '這張牌指出你可以運用的能力、資源或支持。' },
+  { id: 'careerChallenge', label: '主要挑戰', prompt: '這張牌提醒現階段最需要處理的壓力、限制或盲點。' },
+  { id: 'careerOpportunity', label: '機會方向', prompt: '這張牌揭示值得留意的可能性、窗口或轉折點。' },
+  { id: 'nextStep', label: '下一步', prompt: '這張牌給出接下來最務實的行動方向。' },
+];
+
+export const choicePositions: SpreadPosition[] = [
+  { id: 'optionA', label: '選擇 A', prompt: '這張牌描繪選項 A 可能帶出的狀態、代價與學習。' },
+  { id: 'optionB', label: '選擇 B', prompt: '這張牌描繪選項 B 可能帶出的狀態、代價與學習。' },
+  { id: 'choiceCore', label: '決策核心', prompt: '這張牌指出做選擇前最需要釐清的標準、需求或恐懼。' },
+  { id: 'advice', label: '建議', prompt: '這張牌提供評估與行動時可以採取的態度。' },
+];
+
 export const spreads: SpreadDefinition[] = [
+  {
+    id: 'one-card-guidance',
+    label: '一張快速指引',
+    description: '用一張牌抓出當下最重要的提醒，適合每日覺察或簡短問題。',
+    positions: oneCardPositions,
+    exampleQuestions: [
+      '今天我最需要看見什麼？',
+      '面對這件事，我可以先調整哪個態度？',
+      '此刻最適合我的下一步是什麼？',
+    ],
+  },
   {
     id: 'five-card-depth',
     label: '五張深入指引',
@@ -46,12 +84,53 @@ export const spreads: SpreadDefinition[] = [
       '今天我可以用什麼態度處理這件事？',
     ],
   },
+  {
+    id: 'relationship-guidance',
+    label: '關係牌陣',
+    description: '從雙方狀態、關係能量、挑戰到下一步，適合感情、人際與合作關係。',
+    positions: relationshipPositions,
+    exampleQuestions: [
+      '我和對方目前的互動真正卡在哪裡？',
+      '這段關係現在最需要被理解的是什麼？',
+      '我可以如何更成熟地面對這段關係？',
+    ],
+  },
+  {
+    id: 'career-guidance',
+    label: '工作 / 事業牌陣',
+    description: '聚焦工作現況、優勢、挑戰、機會與下一步，適合職涯與專案決策。',
+    positions: careerPositions,
+    exampleQuestions: [
+      '我目前的工作方向適合怎麼調整？',
+      '這個職涯選擇中，我最該注意什麼？',
+      '我該如何推進眼前這個專案？',
+    ],
+  },
+  {
+    id: 'choice-ab',
+    label: '選擇 A/B 牌陣',
+    description: '比較兩個選項各自的傾向，並釐清真正影響決策的核心。',
+    positions: choicePositions,
+    exampleQuestions: [
+      '我該選擇 A 還是 B？',
+      '留在原本方向與嘗試新選項，各自提醒我什麼？',
+      '做這個選擇前，我最需要釐清哪個標準？',
+    ],
+  },
 ];
 
-export const defaultSpread = spreads[0];
+export const defaultSpread = getSpreadDefinition('five-card-depth');
 
 export function getSpreadById(id: SpreadId): SpreadDefinition {
   return spreads.find((spread) => spread.id === id) ?? defaultSpread;
+}
+
+function getSpreadDefinition(id: SpreadId): SpreadDefinition {
+  const spread = spreads.find((item) => item.id === id);
+  if (!spread) {
+    throw new Error(`Missing spread definition: ${id}`);
+  }
+  return spread;
 }
 
 export function drawCardsForSpread(
@@ -95,15 +174,44 @@ export function buildInterpretation(
   const nextCard =
     cards.find((item) => item.position.id === 'nextStep') ??
     cards.find((item) => item.position.id === 'advice') ??
+    cards.find((item) => item.position.id === 'guidance') ??
     cards[cards.length - 1];
   const challengeCard =
     cards.find((item) => item.position.id === 'challenge') ??
     cards.find((item) => item.position.id === 'obstacle') ??
+    cards.find((item) => item.position.id === 'careerChallenge') ??
     cards[1] ??
     cards[0];
-  const summary = `針對「${normalizedQuestion}」，${spread.label}提醒你先看見 ${challengeCard.card.keywords[0]} 相關的卡點，再用 ${nextCard.card.nameZh} 帶出的方向調整下一步。請把解讀當作自我反思參考，重要決策仍應回到現實資訊與專業意見。`;
+  const cardFlow = cards
+    .map(({ card, orientation, position }) => {
+      const direction = orientation === 'upright' ? '正位' : '逆位';
+      return `${position.label}的${card.nameZh}${direction}`;
+    })
+    .join('、');
+  const summary = `針對「${normalizedQuestion}」，${spread.label}呈現的整體脈絡是：${cardFlow}共同把焦點放在你如何辨認現況、處理阻力，並把下一步落回可執行的選擇。這組牌先提醒你看見 ${challengeCard.card.nameZh} 帶出的${challengeCard.card.keywords[0]}相關卡點；它可能不是單一事件，而是反覆影響判斷的模式。真正能往前推動的方向，則落在 ${nextCard.card.nameZh} 所象徵的${nextCard.card.keywords[0]}：先整理資訊、承認感受，再選一個最小但具體的行動。請把解讀當作自我反思參考，重要決策仍應回到現實資訊與專業意見。`;
 
-  return { cards, interpretations, summary };
+  return { cards, interpretations, summary, actions: buildReadingActions(cards) };
+}
+
+export function buildReadingActions(cards: DrawnCard[]): string[] {
+  const nextCard =
+    cards.find((item) => item.position.id === 'nextStep') ??
+    cards.find((item) => item.position.id === 'advice') ??
+    cards.find((item) => item.position.id === 'guidance') ??
+    cards[cards.length - 1];
+  const challengeCard =
+    cards.find((item) => item.position.id === 'challenge') ??
+    cards.find((item) => item.position.id === 'obstacle') ??
+    cards.find((item) => item.position.id === 'careerChallenge') ??
+    cards[1] ??
+    cards[0];
+  const firstCard = cards[0];
+
+  return [
+    `寫下與「${firstCard.card.keywords[0]}」有關的三個已知事實，先把感覺和推測分開。`,
+    `針對 ${challengeCard.card.nameZh} 提醒的卡點，選一件今天能確認或溝通的小事。`,
+    `用 ${nextCard.card.nameZh} 的「${nextCard.card.keywords[0]}」作為行動標準，安排一個 24 小時內可完成的下一步。`,
+  ];
 }
 
 export function buildClarificationFallback(
@@ -123,11 +231,13 @@ export function buildClarificationFallback(
   const challengeCard =
     cards.find((item) => item.position.id === 'challenge') ??
     cards.find((item) => item.position.id === 'obstacle') ??
+    cards.find((item) => item.position.id === 'careerChallenge') ??
     cards[1] ??
     cards[0];
   const nextCard =
     cards.find((item) => item.position.id === 'nextStep') ??
     cards.find((item) => item.position.id === 'advice') ??
+    cards.find((item) => item.position.id === 'guidance') ??
     cards[cards.length - 1];
 
   return `# 核心訊息

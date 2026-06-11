@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TAROT_DECK } from '../data/tarot';
 import { buildClarificationPrompt, buildReadingPrompt, generateClarification, generateReading } from './gemini';
+import { drawDailyCard, trimReadingHistory } from './storage';
 import {
   buildClarificationFallback,
   buildInterpretation,
@@ -20,6 +21,9 @@ describe('tarot deck data', () => {
       expect(card.image).toMatch(/\/cards\/.+\.svg$/);
       expect(card.uprightMeaning).toBeTruthy();
       expect(card.reversedMeaning).toBeTruthy();
+      expect(card.visualDescription.length).toBeGreaterThan(20);
+      expect(card.cardMessage.length).toBeGreaterThan(20);
+      expect(card.generalInterpretation.length).toBeGreaterThan(20);
       expect(card.keywords.length).toBeGreaterThanOrEqual(3);
     }
   });
@@ -62,6 +66,26 @@ describe('drawCardsForSpread', () => {
     expect(new Set(ids).size).toBe(5);
     expect(draws.map((draw) => draw.position.label)).toEqual(['現況', '根源', '挑戰', '資源', '下一步']);
   });
+
+  it('draws unique cards for every configured spread position count', () => {
+    const spreadIds = [
+      'one-card-guidance',
+      'three-card-guidance',
+      'five-card-depth',
+      'relationship-guidance',
+      'career-guidance',
+      'choice-ab',
+    ] as const;
+
+    for (const spreadId of spreadIds) {
+      const spread = getSpreadById(spreadId);
+      const draws = drawCardsForSpread(spread, TAROT_DECK, () => 0);
+      const ids = draws.map((draw) => draw.card.id);
+
+      expect(draws).toHaveLength(spread.positions.length);
+      expect(new Set(ids).size).toBe(spread.positions.length);
+    }
+  });
 });
 
 describe('buildInterpretation', () => {
@@ -71,6 +95,7 @@ describe('buildInterpretation', () => {
 
     expect(result.interpretations).toHaveLength(3);
     expect(result.summary).toContain('工作選擇');
+    expect(result.actions).toHaveLength(3);
     expect(result.interpretations[0].length).toBeGreaterThan(180);
     expect(result.interpretations[0]).toContain('工作選擇');
     expect(result.interpretations[0]).toContain(cards[0].position.label);
@@ -85,6 +110,7 @@ describe('buildInterpretation', () => {
     const result = buildInterpretation('我現在卡住的原因是什麼？', cards, spread);
 
     expect(result.interpretations).toHaveLength(5);
+    expect(result.actions).toHaveLength(3);
     expect(result.summary).toContain('五張深入指引');
     for (const [index, interpretation] of result.interpretations.entries()) {
       expect(interpretation.length).toBeGreaterThan(180);
@@ -104,6 +130,7 @@ describe('buildClarificationFallback', () => {
     const fallback = buildClarificationFallback('我該如何面對目前的工作選擇？', cards, spread, {
       interpretations: reading.interpretations,
       summary: reading.summary,
+      actions: reading.actions,
     });
 
     expect(fallback).toContain('# 核心訊息');
@@ -134,16 +161,15 @@ describe('buildReadingPrompt', () => {
     expect(prompt).toContain('不要做絕對預言');
     expect(prompt).toContain('不要宣稱能準確預測未來');
     expect(prompt).toContain('醫療、法律、投資');
-    expect(prompt).toContain('interpretations 必須剛好有 5 個字串');
-    expect(prompt).toContain('每段約 350-600 字');
-    expect(prompt).toContain('【牌卡名稱｜正位/逆位】');
-    expect(prompt).toContain('牌位意義與這張牌在牌陣中的角色');
-    expect(prompt).toContain('正位或逆位的核心含義');
-    expect(prompt).toContain('與使用者問題的具體關聯');
-    expect(prompt).toContain('這張牌指出的提醒、課題或需要看見的模式');
-    expect(prompt).toContain('可反思或可嘗試的下一步');
-    expect(prompt).toContain('summary 是針對這個問題與整個牌陣的神諭式總結');
-    expect(prompt).toContain('約 250-450 字');
+    expect(prompt).toContain('基本牌義會由本地資料直接顯示');
+    expect(prompt).toContain('interpretations 只是相容欄位');
+    expect(prompt).toContain('必須剛好有 5 個字串');
+    expect(prompt).toContain('每句 40-80 字');
+    expect(prompt).toContain('不要取代本地固定牌義');
+    expect(prompt).toContain('summary 是主要輸出');
+    expect(prompt).toContain('actions 必須剛好有 3 個字串');
+    expect(prompt).toContain('約 350-650 字');
+    expect(prompt).toContain('主要卡點、可用資源與下一步提醒');
   });
 });
 
@@ -155,6 +181,7 @@ describe('buildClarificationPrompt', () => {
     const prompt = buildClarificationPrompt('我該如何面對目前的工作選擇？', cards, spread, {
       interpretations: reading.interpretations,
       summary: reading.summary,
+      actions: reading.actions,
     });
 
     expect(prompt).toContain('清晰解牌模式');
@@ -183,7 +210,7 @@ describe('Gemini frontend client', () => {
     const spread = getSpreadById('three-card-guidance');
     const cards = drawCardsForSpread(spread, TAROT_DECK, () => 0.75);
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ interpretations: ['a', 'b', 'c'], summary: 'summary' }), {
+      new Response(JSON.stringify({ interpretations: ['a', 'b', 'c'], summary: 'summary', actions: ['one', 'two', 'three'] }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -193,6 +220,7 @@ describe('Gemini frontend client', () => {
     const result = await generateReading('我該如何選擇？', cards, spread);
 
     expect(result.summary).toBe('summary');
+    expect(result.actions).toEqual(['one', 'two', 'three']);
     expect(fetchMock).toHaveBeenCalledWith('/api/gemini', expect.objectContaining({ method: 'POST' }));
     const [, init] = fetchMock.mock.calls[0];
     const payload = JSON.parse(String(init.body));
@@ -219,6 +247,7 @@ describe('Gemini frontend client', () => {
     const result = await generateClarification('我該如何面對目前的工作選擇？', cards, spread, {
       interpretations: reading.interpretations,
       summary: reading.summary,
+      actions: reading.actions,
     });
 
     expect(result).toContain('# 核心訊息');
@@ -227,5 +256,41 @@ describe('Gemini frontend client', () => {
     expect(payload.mode).toBe('clarification');
     expect(payload.reading.interpretations).toHaveLength(3);
     expect(payload.reading.summary).toBe(reading.summary);
+  });
+});
+
+describe('daily card and history storage helpers', () => {
+  it('returns the same daily card for the same Taipei date and changes across dates', () => {
+    const first = drawDailyCard('2026-06-11');
+    const repeat = drawDailyCard('2026-06-11');
+    const next = drawDailyCard('2026-06-12');
+
+    expect(first.card.id).toBe(repeat.card.id);
+    expect(first.orientation).toBe(repeat.orientation);
+    expect(`${first.card.id}-${first.orientation}`).not.toBe(`${next.card.id}-${next.orientation}`);
+  });
+
+  it('trims non-favorite history without removing favorites', () => {
+    const cards = drawThreeCards(TAROT_DECK, () => 0.75);
+    const reading = buildInterpretation('測試問題', cards);
+    const items = Array.from({ length: 55 }, (_, index) => ({
+      id: `item-${index}`,
+      createdAt: new Date(2026, 0, index + 1).toISOString(),
+      question: `問題 ${index}`,
+      spreadId: 'three-card-guidance' as const,
+      spreadLabel: '三張快速指引',
+      reading,
+      clarification: '',
+      isFavorite: index < 3,
+      source: 'question' as const,
+    }));
+
+    const trimmed = trimReadingHistory(items);
+
+    expect(trimmed.filter((item) => item.isFavorite)).toHaveLength(3);
+    expect(trimmed.filter((item) => !item.isFavorite)).toHaveLength(50);
+    expect(trimmed.some((item) => item.id === 'item-0')).toBe(true);
+    expect(trimmed.some((item) => item.id === 'item-1')).toBe(true);
+    expect(trimmed.some((item) => item.id === 'item-2')).toBe(true);
   });
 });

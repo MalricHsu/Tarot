@@ -33,17 +33,24 @@ const readingResponseSchema = (cardCount: number): Schema => ({
   properties: {
     interpretations: {
       type: Type.ARRAY,
-      description: `對應這次抽牌的詳細解讀，必須剛好包含 ${cardCount} 個字串元素。`,
+      description: `相容欄位，必須剛好包含 ${cardCount} 個字串元素；每個元素只需簡短概括單張牌在牌陣中的作用。`,
       items: {
         type: Type.STRING,
       },
     },
     summary: {
       type: Type.STRING,
-      description: '針對這個問題的整體建議總結。',
+      description: '針對使用者問題、牌陣位置與全部抽牌的主要整體解簽。',
+    },
+    actions: {
+      type: Type.ARRAY,
+      description: '剛好 3 個具體、可在 24-72 小時內執行的行動。',
+      items: {
+        type: Type.STRING,
+      },
     },
   },
-  required: ['interpretations', 'summary'],
+  required: ['interpretations', 'summary', 'actions'],
 });
 
 function isRecord(value: unknown): value is Record<string, unknown> {
