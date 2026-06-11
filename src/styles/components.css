@@ -360,9 +360,9 @@
   border: 1px solid var(--gold-soft);
   background:
     radial-gradient(circle at 50% 28%, rgba(227, 184, 115, 0.18), transparent 55%),
-    radial-gradient(circle at 20% 80%, rgba(124, 109, 240, 0.18), transparent 50%),
-    radial-gradient(circle at 80% 78%, rgba(124, 109, 240, 0.14), transparent 50%),
-    linear-gradient(160deg, #1a2133, #0e1320);
+    radial-gradient(circle at 20% 80%, rgba(210, 96, 58, 0.18), transparent 50%),
+    radial-gradient(circle at 80% 78%, rgba(210, 96, 58, 0.14), transparent 50%),
+    linear-gradient(160deg, #2a1810, #140b07);
   display: grid;
   place-items: center;
   box-shadow: inset 0 0 0 1px rgba(227, 184, 115, 0.18);
@@ -458,7 +458,7 @@
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: rgba(255, 250, 240, 0.64);
+  background: rgba(54, 41, 28, 0.64);
   color: var(--text-primary);
   text-align: left;
   transition:
@@ -479,7 +479,7 @@
 
 .spread-intent__option.is-selected {
   border-color: var(--gold-soft);
-  background: rgba(255, 244, 219, 0.88);
+  background: rgba(66, 50, 34, 0.88);
   box-shadow:
     0 8px 22px rgba(120, 80, 35, 0.1),
     0 0 0 1px rgba(154, 106, 36, 0.18);
@@ -793,7 +793,7 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .choosing-header,
   .revealing-header {
-    background: rgba(255, 250, 240, 0.94);
+    background: rgba(54, 41, 28, 0.94);
   }
 }
 
@@ -1005,7 +1005,7 @@
   place-items: center;
   border-radius: 8px;
   border: 1px dashed rgba(95, 66, 32, 0.24);
-  background: rgba(255, 250, 240, 0.42);
+  background: rgba(54, 41, 28, 0.42);
   color: transparent;
 }
 
@@ -1014,7 +1014,7 @@
   border-color: var(--gold-soft);
   background:
     radial-gradient(circle at 50% 34%, rgba(227, 184, 115, 0.16), transparent 56%),
-    linear-gradient(160deg, #1a2133, #0e1320);
+    linear-gradient(160deg, #2a1810, #140b07);
   color: var(--gold);
   box-shadow: 0 6px 14px rgba(46, 35, 26, 0.12);
 }
@@ -1156,7 +1156,7 @@
   justify-content: center;
   gap: 4px;
   min-height: 64px;
-  background: rgba(255, 250, 240, 0.52);
+  background: rgba(54, 41, 28, 0.52);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   font-size: 12px;
@@ -1175,7 +1175,7 @@
 .done-action-btn:hover {
   color: var(--gold);
   border-color: rgba(154, 106, 36, 0.3);
-  background: rgba(255, 244, 219, 0.76);
+  background: rgba(66, 50, 34, 0.76);
 }
 
 .done-action-btn:active {
@@ -1185,7 +1185,7 @@
 .done-action-btn.is-active {
   color: var(--gold);
   border-color: rgba(154, 106, 36, 0.36);
-  background: rgba(255, 244, 219, 0.82);
+  background: rgba(66, 50, 34, 0.82);
 }
 
 /* Meanings panel */
@@ -1290,7 +1290,7 @@
 
 .clarification-section {
   padding: var(--sp-4);
-  background: linear-gradient(135deg, rgba(124,109,240,0.06), rgba(227,184,115,0.04));
+  background: linear-gradient(135deg, rgba(210, 96, 58,0.06), rgba(227,184,115,0.04));
   border: 1px solid var(--border-strong);
   border-radius: var(--r-lg);
 }
@@ -1487,7 +1487,7 @@
 
 .daily-deep-btn {
   margin-top: var(--sp-6);
-  background: rgba(255, 250, 240, 0.58);
+  background: rgba(54, 41, 28, 0.58);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.54),
     0 8px 22px rgba(120, 80, 35, 0.08);
@@ -1617,7 +1617,7 @@
   padding: 0 var(--sp-3);
   border: 1px solid rgba(95, 66, 32, 0.12);
   border-radius: var(--r-full);
-  background: rgba(255, 250, 240, 0.72);
+  background: rgba(54, 41, 28, 0.72);
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 700;
@@ -1633,7 +1633,7 @@
 
 .library-filter-btn.is-selected {
   border-color: rgba(154, 106, 36, 0.42);
-  background: rgba(255, 243, 214, 0.92);
+  background: rgba(66, 50, 34, 0.92);
   color: var(--gold-soft);
   box-shadow:
     0 0 0 1px rgba(154, 106, 36, 0.12),

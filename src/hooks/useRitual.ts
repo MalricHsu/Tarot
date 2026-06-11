@@ -87,7 +87,7 @@ export function buildShareText(
       return `${i + 1}. ${draw.position.label}：${draw.card.nameZh}（${dir}）`;
     })
     .join('\n');
-  return `燭見塔羅解讀\n問題：${question}\n牌陣：${spread.label}\n\n牌面：\n${cards}\n\n總結：\n${reading.summary}\n\n接下來可以做的事：\n${reading.actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}`;
+  return `燭見塔羅解讀\n問題：${question}\n牌陣：${spread.label}\n\n牌面：\n${cards}\n\n總結：\n${reading.summary}\n\n行動指引：\n${reading.actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}`;
 }
 
 export function wrapCanvasText(

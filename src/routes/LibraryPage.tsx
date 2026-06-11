@@ -126,23 +126,23 @@ export default function LibraryPage() {
 
             <div className="library-detail__sections">
               <section>
-                <h3>正位牌義</h3>
+                <h3>正位之意</h3>
                 <p>{detailCard.uprightMeaning}</p>
               </section>
               <section>
-                <h3>逆位牌義</h3>
+                <h3>逆位之意</h3>
                 <p>{detailCard.reversedMeaning}</p>
               </section>
               <section>
-                <h3>牌面長相</h3>
+                <h3>牌面意象</h3>
                 <p>{detailCard.visualDescription}</p>
               </section>
               <section>
-                <h3>這張牌在說什麼</h3>
+                <h3>牌語</h3>
                 <p>{detailCard.cardMessage}</p>
               </section>
               <section>
-                <h3>一般解讀</h3>
+                <h3>指引</h3>
                 <p>{detailCard.generalInterpretation}</p>
               </section>
             </div>

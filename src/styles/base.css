@@ -34,7 +34,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* 背景氛圍：極淡 noise + 稀疏星點（藍紫），固定鋪滿整個視窗（桌機延伸星空） */
+/* 背景氛圍：極淡 noise + 稀疏燭星（暖金為主，點綴冷暗星增添神秘），固定鋪滿視窗 */
 body::before {
   content: "";
   position: fixed;
@@ -42,14 +42,14 @@ body::before {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(1.5px 1.5px at 12% 18%, rgba(124, 109, 240, 0.5), transparent 60%),
-    radial-gradient(1.5px 1.5px at 78% 12%, rgba(227, 184, 115, 0.32), transparent 60%),
-    radial-gradient(1.5px 1.5px at 35% 62%, rgba(124, 109, 240, 0.4), transparent 60%),
-    radial-gradient(1.2px 1.2px at 88% 70%, rgba(243, 239, 230, 0.28), transparent 60%),
-    radial-gradient(1.5px 1.5px at 60% 88%, rgba(124, 109, 240, 0.36), transparent 60%),
-    radial-gradient(1.2px 1.2px at 22% 84%, rgba(227, 184, 115, 0.26), transparent 60%),
-    radial-gradient(1200px 800px at 50% -10%, rgba(124, 109, 240, 0.14), transparent 70%),
-    radial-gradient(900px 700px at 50% 110%, rgba(227, 184, 115, 0.08), transparent 70%);
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(232, 178, 90, 0.55), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 12%, rgba(227, 184, 115, 0.4), transparent 60%),
+    radial-gradient(1.5px 1.5px at 35% 62%, rgba(210, 96, 58, 0.4), transparent 60%),
+    radial-gradient(1.2px 1.2px at 88% 70%, rgba(160, 140, 200, 0.3), transparent 60%),
+    radial-gradient(1.5px 1.5px at 60% 88%, rgba(232, 178, 90, 0.4), transparent 60%),
+    radial-gradient(1.2px 1.2px at 22% 84%, rgba(210, 96, 58, 0.3), transparent 60%),
+    radial-gradient(1200px 800px at 50% -10%, rgba(224, 162, 63, 0.16), transparent 70%),
+    radial-gradient(1000px 760px at 50% 112%, rgba(110, 43, 58, 0.18), transparent 72%);
 }
 
 /* 極淡 noise 疊層 */
@@ -137,16 +137,16 @@ a {
   overflow: hidden;
   background: linear-gradient(
     180deg,
-    rgba(255, 252, 246, 0.52) 0%,
-    rgba(255, 246, 226, 0.34) 58%,
-    rgba(239, 226, 198, 0.12) 100%
+    rgba(40, 27, 16, 0.62) 0%,
+    rgba(28, 19, 11, 0.42) 58%,
+    rgba(13, 10, 8, 0.18) 100%
   );
   backdrop-filter: var(--liquid-glass-blur);
   -webkit-backdrop-filter: var(--liquid-glass-blur);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(255, 214, 150, 0.14);
   box-shadow:
-    0 14px 32px rgba(120, 80, 35, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.54);
+    0 14px 32px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 224, 170, 0.16);
 }
 
 .page-header::before,
@@ -183,6 +183,14 @@ a {
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
+/* 品牌標題「燭見」：放大並加燭光金光暈 */
+.page-header--brand .page-header__title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 18px var(--gold-glow);
+}
+
 .page-header__action {
   position: relative;
   z-index: 1;
@@ -202,11 +210,21 @@ a {
   grid-template-columns: repeat(5, 1fr);
   border-radius: var(--r-full);
   overflow: hidden;
-  background: var(--liquid-glass-bg-strong);
+  /* iOS 26 白色毛玻璃外框（內部滑動膠囊維持燭光液體鏡片） */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(255, 255, 255, 0.44) 55%,
+    rgba(255, 255, 255, 0.34) 100%
+  );
   backdrop-filter: var(--liquid-glass-blur);
   -webkit-backdrop-filter: var(--liquid-glass-blur);
-  border: 1px solid var(--liquid-glass-border);
-  box-shadow: var(--liquid-glass-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.45),
+    0 4px 14px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(120, 80, 35, 0.08);
 }
 
 .tab-bar::before,
@@ -248,12 +266,12 @@ a {
   transition: transform var(--dur-base) var(--ease-spring);
   overflow: hidden;
   background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 249, 238, 0.48) 46%, rgba(232, 196, 132, 0.32) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.66);
+    linear-gradient(155deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.34) 52%, rgba(255, 255, 255, 0.22) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow:
-    0 8px 22px rgba(185, 130, 46, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    inset 0 -1px 0 rgba(120, 80, 35, 0.08);
+    0 6px 18px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06);
   pointer-events: none;
 }
 
@@ -279,12 +297,12 @@ a {
   padding: 0;
   border: none;
   background: none;
-  color: var(--text-muted);
+  color: rgba(60, 42, 24, 0.55);
   transition: color var(--dur-fast) var(--ease-out);
 }
 
 .tab-bar__item.is-active {
-  color: var(--gold);
+  color: #3a2410;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
@@ -300,9 +318,11 @@ a {
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .page-header,
+  .page-header {
+    background: rgba(26, 18, 11, 0.96);
+  }
   .tab-bar {
-    background: rgba(255, 250, 240, 0.94);
+    background: rgba(255, 255, 255, 0.92);
   }
 }
 
@@ -333,7 +353,7 @@ a {
 
 /* ---- 玻璃感 util ---- */
 .glass {
-  background: rgba(28, 35, 51, 0.7);
+  background: rgba(36, 24, 14, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);

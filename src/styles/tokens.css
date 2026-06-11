@@ -1,44 +1,44 @@
 /* ============================================================
    燭見 — Design Tokens（§2）
-   暗色分層 + 雙強調色（香檳金 / 星空藍紫）。集中於 :root。
+   暗夜燭光金：近黑暖底 + 燭金 / 餘燼橘，尾端帶一抹暗酒紅製造神秘。
    ============================================================ */
 
 :root {
-  /* 背景：溫暖燭光羊皮紙，分層由暖底→亮奶油製造深度 */
-  --bg-base: #efe2c6; /* 燭光羊皮紙底 */
-  --bg-surface-1: #fbf4e3; /* 卡片 */
-  --bg-surface-2: #fdf8ec; /* sheet / 浮層 */
-  --bg-elevated: #fffaf0;
+  /* 背景：暖褐暗底，分層由深底→暖暗製造「燭光照桌面」的深度 */
+  --bg-base: #1f1812; /* 暗夜暖褐底 */
+  --bg-surface-1: #2b2017; /* 卡片 */
+  --bg-surface-2: #33271c; /* sheet / 浮層 */
+  --bg-elevated: #3c2d1e;
 
-  /* 描邊：暖深半透明 */
-  --border: rgba(95, 66, 32, 0.16);
-  --border-strong: rgba(95, 66, 32, 0.28);
+  /* 描邊：暖金半透明（暗底用暖邊，不用冷灰） */
+  --border: rgba(224, 162, 63, 0.16);
+  --border-strong: rgba(224, 162, 63, 0.30);
 
-  /* 文字：深暖褐 */
-  --text-primary: #3a2a17;
-  --text-secondary: #6f5a3c;
-  --text-muted: #9c8763;
+  /* 文字：暖米白（暗底反相） */
+  --text-primary: #f3e2c2;
+  --text-secondary: rgba(243, 226, 194, 0.74);
+  --text-muted: rgba(243, 226, 194, 0.46);
 
-  /* 主強調：香檳金（在淺底加深以保對比） */
-  --gold: #b9822e;
-  --gold-soft: #9a6a24;
-  --gold-glow: rgba(201, 145, 50, 0.35);
+  /* 主強調：燭金（暗底要亮一點才會「發光」） */
+  --gold: #e0a23f;
+  --gold-soft: #ffce85;
+  --gold-glow: rgba(224, 162, 63, 0.45);
 
-  /* 次強調：燭火橘（取代原藍紫，維持變數名） */
-  --indigo: #c25a33;
-  --indigo-soft: #a8472a;
-  --indigo-glow: rgba(194, 90, 51, 0.28);
+  /* 次強調：餘燼橘 */
+  --indigo: #d2603a;
+  --indigo-soft: #b14a2a;
+  --indigo-glow: rgba(210, 96, 58, 0.34);
 
   /* 狀態 */
-  --success: #3f9c6d;
-  --warn: #c2882f;
-  --error: #c25a33;
+  --success: #6fbf94;
+  --warn: #e0a23f;
+  --error: #e08a6e;
 
-  /* 漸層：金→燭火 */
-  --grad-mystic: linear-gradient(135deg, #e0a85a 0%, #c25a33 100%);
+  /* 漸層：燭金→餘燼→暗酒紅（最後一抹冷暗色＝神秘） */
+  --grad-mystic: linear-gradient(135deg, #e8b25a 0%, #c2562e 55%, #6e2b3a 100%);
 
   /* 字體 */
-  --font-serif: "Noto Serif TC", serif;
+  --font-serif: "LXGW WenKai TC", "Noto Serif TC", serif;
   --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
 
   /* 形狀 */
@@ -60,30 +60,30 @@
   --page-pad: 20px;
 
   /* 陰影 / 光暈 */
-  --shadow-card: 0 6px 22px rgba(120, 80, 35, 0.14);
+  --shadow-card: 0 6px 22px rgba(0, 0, 0, 0.45);
   --focus-glow: 0 0 0 3px var(--gold-glow);
 
-  /* Liquid Glass：半透明暖玻璃、柔亮邊緣與折射高光 */
+  /* Liquid Glass：暖暗玻璃、燭金鏡片邊緣與柔亮折射高光 */
   --liquid-glass-bg: linear-gradient(
     180deg,
-    rgba(255, 252, 246, 0.66) 0%,
-    rgba(255, 246, 226, 0.42) 48%,
-    rgba(239, 226, 198, 0.28) 100%
+    rgba(46, 32, 20, 0.66) 0%,
+    rgba(33, 22, 13, 0.5) 48%,
+    rgba(20, 14, 9, 0.4) 100%
   );
   --liquid-glass-bg-strong: linear-gradient(
     180deg,
-    rgba(255, 252, 246, 0.82) 0%,
-    rgba(255, 245, 224, 0.62) 52%,
-    rgba(236, 218, 182, 0.46) 100%
+    rgba(52, 36, 22, 0.86) 0%,
+    rgba(36, 24, 14, 0.74) 52%,
+    rgba(22, 15, 9, 0.66) 100%
   );
-  --liquid-glass-border: rgba(255, 255, 255, 0.62);
-  --liquid-glass-highlight: rgba(255, 255, 255, 0.78);
+  --liquid-glass-border: rgba(255, 214, 150, 0.22);
+  --liquid-glass-highlight: rgba(255, 226, 178, 0.42);
   --liquid-glass-shadow:
-    0 18px 46px rgba(112, 77, 33, 0.16),
-    0 4px 14px rgba(120, 80, 35, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    inset 0 -1px 0 rgba(112, 77, 33, 0.08);
-  --liquid-glass-blur: blur(28px) saturate(1.75) contrast(1.02);
+    0 18px 46px rgba(0, 0, 0, 0.5),
+    0 4px 14px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 224, 170, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  --liquid-glass-blur: blur(30px) saturate(1.8) brightness(1.04);
 
   /* 動效 */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);

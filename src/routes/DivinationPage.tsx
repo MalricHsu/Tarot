@@ -56,15 +56,15 @@ function MeaningsPanel({ drawnCards }: { drawnCards: DrawnCard[] }) {
               </div>
               <div className="meaning-card__sections">
                 <section>
-                  <h4>牌面長相</h4>
+                  <h4>牌面意象</h4>
                   <p>{draw.card.visualDescription}</p>
                 </section>
                 <section>
-                  <h4>這張牌在說什麼</h4>
+                  <h4>牌語</h4>
                   <p>{draw.card.cardMessage}</p>
                 </section>
                 <section>
-                  <h4>一般解讀</h4>
+                  <h4>指引</h4>
                   <p>{draw.card.generalInterpretation}</p>
                 </section>
                 <section>
@@ -135,7 +135,7 @@ function AnalysisPanel({
           </div>
           {reading.actions.length > 0 && (
             <div className="analysis-actions">
-              <h3>接下來可以做的事</h3>
+              <h3>行動指引</h3>
               <ol>
                 {reading.actions.map((action, i) => (
                   <li key={i}>{action}</li>
@@ -146,12 +146,12 @@ function AnalysisPanel({
         </>
       )}
       <div className="clarification-section">
-        <h3>深度解析</h3>
+        <h3>深層解析</h3>
         {isClarifying ? (
           <div className="clarification-loading">
             <SkeletonText lines={4} />
             <Skeleton height="14px" width="60%" />
-            <p className="clarification-loading-hint">賢者解析中…</p>
+            <p className="clarification-loading-hint">賢者正凝視牌面…</p>
           </div>
         ) : clarificationError ? (
           <p className="clarification-error">{clarificationError}</p>
@@ -207,6 +207,7 @@ export default function DivinationPage() {
     return (
       <>
         <PageHeader
+          className="page-header--brand"
           title="燭見"
           action={
             <Link to="/daily" className="btn btn--ghost btn--sm">
@@ -444,6 +445,7 @@ export default function DivinationPage() {
   return (
     <>
       <PageHeader
+        className="page-header--brand"
         title="燭見"
         action={
           <Button variant="secondary" size="sm" onClick={resetToHome}>
