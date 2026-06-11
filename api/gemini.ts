@@ -61,6 +61,17 @@ type GeminiRequestBody =
       reading: ReadingResult;
     };
 
+// ── Model fallback list ─────────────────────────────────────────
+// 從最輕量的模型開始，quota 不足時自動 fallback 到下一個。
+const GEMINI_MODELS = [
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+] as const;
+
+type GeminiModel = (typeof GEMINI_MODELS)[number];
+
+// ── Prompt builders ─────────────────────────────────────────────
+
 function formatCardPayload(
   card: DrawnCard,
   index: number,
@@ -155,6 +166,8 @@ ${reading.summary}
 - 不要用模糊預言取代具體分析。`;
 }
 
+// ── Response schema ─────────────────────────────────────────────
+
 const readingResponseSchema = (cardCount: number) => ({
   type: 'OBJECT',
   properties: {
@@ -175,6 +188,8 @@ const readingResponseSchema = (cardCount: number) => ({
   },
   required: ['interpretations', 'summary', 'actions'],
 });
+
+// ── Validation helpers ──────────────────────────────────────────
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -199,15 +214,45 @@ function getBody(body: unknown): unknown {
   }
 }
 
-async function callGemini(
+// ── Retry-after parser ──────────────────────────────────────────
+// Gemini 在 429 回應的 error.details 裡可能帶 retryDelay（秒數字串如 "58s"）
+// 或在 error.message 裡帶類似 "retry after 58 seconds" 的文字。
+
+function parseRetryAfterSeconds(detail: string): number | undefined {
+  // 嘗試解析 "retryDelay":"58s" 格式
+  const retryDelayMatch = detail.match(/"retryDelay"\s*:\s*"(\d+)s"/);
+  if (retryDelayMatch) return parseInt(retryDelayMatch[1], 10);
+
+  // 嘗試解析 "retry after N seconds" 或 "retry_after: N" 格式
+  const retryTextMatch = detail.match(/retry[_ ]?after[:\s]+(\d+)/i);
+  if (retryTextMatch) return parseInt(retryTextMatch[1], 10);
+
+  return undefined;
+}
+
+// ── Core Gemini caller with model fallback ──────────────────────
+
+interface GeminiCallOptions {
+  responseMimeType?: string;
+  responseSchema?: object;
+  temperature: number;
+}
+
+interface GeminiCallResult {
+  text: string;
+  model: GeminiModel;
+}
+
+/** 可 fallback 的狀態碼：quota 用完或服務暫時不可用 */
+function isFallbackableStatus(status: number): boolean {
+  return status === 429 || status === 503;
+}
+
+async function callGeminiWithFallback(
   apiKey: string,
   prompt: string,
-  config: {
-    responseMimeType?: string;
-    responseSchema?: object;
-    temperature: number;
-  },
-): Promise<string> {
+  config: GeminiCallOptions,
+): Promise<GeminiCallResult> {
   const generationConfig: Record<string, unknown> = {
     temperature: config.temperature,
     // 關閉 2.5 Flash 預設的思考模式，省去推理延遲，大幅加快回應速度。
@@ -221,18 +266,17 @@ async function callGemini(
     generationConfig,
   });
 
-  // 針對暫時性過載（429/503）做指數退避重試，避免尖峰時直接落回本地牌義。
-  const maxAttempts = 3;
-  let lastError = '';
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: requestBody,
-      },
-    );
+  let lastStatus = 500;
+  let lastDetail = '';
+  let lastRetryAfter: number | undefined;
+
+  for (const model of GEMINI_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: requestBody,
+    });
 
     if (res.ok) {
       const data = (await res.json()) as {
@@ -240,24 +284,37 @@ async function callGemini(
       };
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
       if (!text) throw new Error('Gemini returned empty content');
-      return text;
+      console.log(`[gemini] success with model: ${model}`);
+      return { text, model };
     }
 
     const detail = await res.text().catch(() => '');
-    lastError = `Gemini REST API error ${res.status}: ${detail}`;
+    lastStatus = res.status;
+    lastDetail = detail;
+    lastRetryAfter = parseRetryAfterSeconds(detail);
 
-    const isRetryable = res.status === 429 || res.status === 503;
-    if (!isRetryable || attempt === maxAttempts - 1) {
-      throw new Error(lastError);
+    console.warn(`[gemini] model=${model} status=${res.status}`);
+
+    // 非 fallbackable 錯誤（400、401、403 等）：直接拋出，不繼續嘗試
+    if (!isFallbackableStatus(res.status)) {
+      throw Object.assign(
+        new Error(`Gemini API error ${res.status}: ${detail}`),
+        { status: res.status, detail },
+      );
     }
 
-    // 退避：0.6s、1.2s（加少量抖動）後重試。
-    const delayMs = 600 * 2 ** attempt + Math.random() * 200;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    // 是 429/503：繼續嘗試下一個模型（無需等待，下一個模型不共用 quota）
   }
 
-  throw new Error(lastError || 'Gemini request failed');
+  // 所有模型都失敗
+  const err = Object.assign(
+    new Error(`All Gemini models exhausted. Last status: ${lastStatus}`),
+    { status: lastStatus, detail: lastDetail, retryAfterSeconds: lastRetryAfter },
+  );
+  throw err;
 }
+
+// ── Vercel handler ──────────────────────────────────────────────
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   response.setHeader('Cache-Control', 'no-store');
@@ -279,22 +336,54 @@ export default async function handler(request: VercelRequest, response: VercelRe
   try {
     if (body.mode === 'reading') {
       const prompt = buildReadingPrompt(body.question, body.cards, body.spread);
-      const text = await callGemini(apiKey, prompt, {
+      const { text, model } = await callGeminiWithFallback(apiKey, prompt, {
         responseMimeType: 'application/json',
         responseSchema: readingResponseSchema(body.cards.length),
         temperature: 0.7,
       });
-      return response.status(200).json(JSON.parse(text));
+      return response.status(200).json({ ...JSON.parse(text), model });
     }
 
+    // mode === 'clarification'
     const prompt = buildClarificationPrompt(body.question, body.cards, body.spread, body.reading);
-    const clarification = await callGemini(apiKey, prompt, { temperature: 0.65 });
-    const trimmed = clarification.trim();
+    const { text, model } = await callGeminiWithFallback(apiKey, prompt, { temperature: 0.65 });
+    const trimmed = text.trim();
     if (!trimmed) throw new Error('Gemini returned empty clarification');
-    return response.status(200).json({ clarification: trimmed });
+    return response.status(200).json({ clarification: trimmed, model });
   } catch (error) {
-    console.error('Gemini proxy failed:', error);
+    console.error('[gemini] handler error:', error);
+
+    // 判斷是否為 429 / 503（所有模型都用盡）
+    const errObj = error as { status?: number; retryAfterSeconds?: number };
+    const status = typeof errObj.status === 'number' ? errObj.status : 500;
+
+    if (status === 429) {
+      const payload: Record<string, unknown> = {
+        error: 'AI 解牌額度暫時用完，請稍後再試。',
+        status: 429,
+        retryable: true,
+      };
+      if (typeof errObj.retryAfterSeconds === 'number') {
+        payload.retryAfterSeconds = errObj.retryAfterSeconds;
+      }
+      return response.status(429).json(payload);
+    }
+
+    if (status === 503) {
+      return response.status(503).json({
+        error: 'AI 解牌服務暫時繁忙，請稍後再試。',
+        status: 503,
+        retryable: true,
+      });
+    }
+
+    // 其他錯誤（400、401、403、500 …）
     const message = error instanceof Error ? error.message : String(error);
-    return response.status(502).json({ error: `Gemini request failed: ${message}` });
+    return response.status(status === 400 || status === 401 || status === 403 ? status : 500).json({
+      error: `解牌時發生錯誤，請稍後再試。`,
+      status,
+      detail: message,
+      retryable: false,
+    });
   }
 }

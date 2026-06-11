@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { TAROT_DECK } from '@/data/tarot';
-import { generateClarification, generateReading } from '@/logic/gemini';
+import { generateClarification, generateReading, isGeminiApiError } from '@/logic/gemini';
 import {
   buildClarificationFallback,
   buildInterpretation,
@@ -60,14 +60,19 @@ function selectedSlotsToDrawnCards(slots: ChoiceSlot[], spread: SpreadDefinition
 }
 
 export function getGeminiFallbackMessage(error: unknown): string {
+  // 優先使用結構化的 GeminiApiError 友善訊息
+  if (isGeminiApiError(error)) {
+    if (error.httpStatus === 429) return '今日 AI 解牌能量暫時用完，請稍後再試。';
+    if (error.httpStatus === 503) return 'AI 解牌服務暫時繁忙，請稍後再試。';
+    return error.userMessage;
+  }
+
   const msg = error instanceof Error ? error.message : String(error);
   if (import.meta.env.DEV && msg.includes('404')) return '';
   if (msg.includes('Gemini API key is not configured'))
     return '目前 Vercel Function 有回應，但沒有讀到 GEMINI_API_KEY；請到 Vercel Environment Variables 設定後重新部署。';
   if (msg.includes('504') || msg.includes('timeout'))
     return 'Gemini 回覆超時（Function 執行超過限制）；已先用本地牌義完成統整。';
-  if (msg.includes('502'))
-    return '目前 Vercel Function 已呼叫 Gemini，但 Gemini 回覆失敗、key 無效或配額/權限有問題；已先用本地牌義完成統整。';
   return `目前 Gemini API 沒有成功回覆（${msg}）；已先用本地牌義完成統整。`;
 }
 
@@ -206,7 +211,7 @@ export function useRitual() {
         setUsedFallback(false);
         setFallbackMessage('');
       } catch (error) {
-        console.error(error);
+        console.error('[useRitual] reading error:', error);
         const nextReading = buildInterpretation(trimmedQuestion, drawnCards, selectedSpread);
         setReading(nextReading);
         persistHistoryItem(
@@ -249,7 +254,7 @@ export function useRitual() {
         );
       }
     } catch (error) {
-      console.error(error);
+      console.error('[useRitual] clarification error:', error);
       if (clarificationRequestRef.current !== requestId) return;
       const fallback = buildClarificationFallback(trimmedQuestion, reading.cards, selectedSpread, {
         interpretations: reading.interpretations,
@@ -265,6 +270,7 @@ export function useRitual() {
           })),
         );
       }
+      // 顯示使用者可讀的錯誤訊息
       setClarificationError(getGeminiFallbackMessage(error));
     } finally {
       if (clarificationRequestRef.current === requestId) setIsClarifying(false);
