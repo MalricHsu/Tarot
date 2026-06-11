@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import handler from './gemini-health.js';
+import handler from '../api/gemini-health.js';
 
 interface MockResponse {
   headers: Record<string, string>;
