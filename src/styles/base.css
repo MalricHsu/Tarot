@@ -99,6 +99,8 @@ a {
   display: flex;
   flex-direction: column;
   background: var(--bg-base);
+  /* 禁止整頁水平捲動（clip 不會破壞 sticky header） */
+  overflow-x: clip;
 }
 
 /* 桌機 / 平板：邊框與陰影強化「手機框」 */

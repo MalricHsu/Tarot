@@ -8,6 +8,7 @@ import Segmented from "@/components/ui/Segmented";
 import { Skeleton, SkeletonText } from "@/components/ui/Skeleton";
 import SpreadLayout from "@/components/tarot/SpreadLayout";
 import TarotCard from "@/components/tarot/TarotCard";
+import CardFan from "@/components/tarot/CardFan";
 import SpreadPicker from "@/components/SpreadPicker";
 import ShareSheet from "@/components/ShareSheet";
 import PageHeader from "@/layout/PageHeader";
@@ -297,7 +298,9 @@ export default function DivinationPage() {
   if (phase === "focusing") {
     return (
       <div className="phase-focusing">
-        <div className="focusing-orb" aria-hidden />
+        <div className="focusing-flame" aria-hidden>
+          <span className="focusing-flame__core" />
+        </div>
         <p className="focusing-question">{trimmedQuestion}</p>
         <p className="focusing-hint">凝聚心神，讓問題沉澱…</p>
         <Button variant="ghost" onClick={skipFocusing}>
@@ -315,7 +318,6 @@ export default function DivinationPage() {
     const availableSlots = choiceSlots.filter(
       (slot) => !selectedIds.includes(slot.id)
     );
-    const visibleSlots = availableSlots.slice(0, 6);
 
     return (
       <div className="phase-choosing">
@@ -340,25 +342,12 @@ export default function DivinationPage() {
             </p>
           </div>
 
-          <div className="draw-options" aria-label="可選的牌">
-            {visibleSlots.map((slot, index) => (
-              <button
-                key={slot.id}
-                type="button"
-                className="draw-option"
-                onClick={() => chooseCard(slot.id)}
-                aria-label={`選擇第 ${index + 1} 張牌`}
-              >
-                <div className="draw-option__card">
-                  <TarotCard
-                    card={slot.card}
-                    orientation={slot.orientation}
-                    faceUp={false}
-                    ariaLabel={`第 ${index + 1} 張牌`}
-                  />
-                </div>
-              </button>
-            ))}
+          <div className="choosing-fan-wrap">
+            <CardFan
+              slots={availableSlots}
+              selectedIds={selectedIds}
+              onChoose={chooseCard}
+            />
           </div>
 
           <div className="draw-selected" aria-label="已抽出的牌">
