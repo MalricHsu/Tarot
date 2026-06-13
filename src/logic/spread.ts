@@ -153,6 +153,40 @@ export function drawThreeCards(deck: TarotCard[] = TAROT_DECK, random: () => num
   return drawCardsForSpread(getSpreadById('three-card-guidance'), deck, random);
 }
 
+/**
+ * 大小牌比例判讀。一般 78 張牌陣大牌約佔 28%（大牌:小牌 ≈ 1:2.5）。
+ * 比例本身是訊號：大牌偏多＝精神層面影響大、能掌控的少；小牌偏多＝具體事件、可改變空間大。
+ * 牌數 < 3 時不具參考意義，回傳 null。
+ */
+export function analyzeArcanaBalance(cards: DrawnCard[]): {
+  majorCount: number;
+  minorCount: number;
+  pct: number;
+  note: string;
+} | null {
+  const total = cards.length;
+  if (total < 3) return null;
+
+  const majorCount = cards.filter(({ card }) => card.arcana === 'major').length;
+  const minorCount = total - majorCount;
+  const pct = Math.round((majorCount / total) * 100);
+
+  let note: string;
+  if (majorCount === 0) {
+    note = `本次 ${total} 張全為小牌，這件事主要落在具體、日常、能實際操作的層面，影響較短期，你靠自己行動就能改變的空間很大。`;
+  } else if (pct < 15) {
+    note = `本次 ${total} 張中小牌明顯偏多（大牌 ${majorCount} 張），這件事偏向具體事件，影響較短期，你能靠自己行動改變的空間較大。`;
+  } else if (pct < 43) {
+    note = `本次 ${total} 張中大牌 ${majorCount}、小牌 ${minorCount}，比例接近常態，精神層面與現實事件大致並重。`;
+  } else if (pct < 70) {
+    note = `本次 ${total} 張中大牌偏多（${majorCount} 張，約 ${pct}%），這件事影響很大、你也很重視，但多半在內心進行，靠自己能直接掌控的不多，較需要時間沉澱而非急於行動。`;
+  } else {
+    note = `本次 ${total} 張幾乎都是大牌（${majorCount} 張，約 ${pct}%），這件事深刻牽動你的價值與信念、影響長遠，卻幾乎不在你能直接掌控的範圍內，多半只能調整心態、耐心等待。`;
+  }
+
+  return { majorCount, minorCount, pct, note };
+}
+
 export function buildInterpretation(
   question: string,
   cards: DrawnCard[],
@@ -188,7 +222,9 @@ export function buildInterpretation(
       return `${position.label}的${card.nameZh}${direction}`;
     })
     .join('、');
-  const summary = `針對「${normalizedQuestion}」，${spread.label}呈現的整體脈絡是：${cardFlow}共同把焦點放在你如何辨認現況、處理阻力，並把下一步落回可執行的選擇。這組牌先提醒你看見 ${challengeCard.card.nameZh} 帶出的${challengeCard.card.keywords[0]}相關卡點；它可能不是單一事件，而是反覆影響判斷的模式。真正能往前推動的方向，則落在 ${nextCard.card.nameZh} 所象徵的${nextCard.card.keywords[0]}：先整理資訊、承認感受，再選一個最小但具體的行動。請把解讀當作自我反思參考，重要決策仍應回到現實資訊與專業意見。`;
+  const balance = analyzeArcanaBalance(cards);
+  const balanceLine = balance ? `${balance.note}` : '';
+  const summary = `針對「${normalizedQuestion}」，${spread.label}呈現的整體脈絡是：${cardFlow}共同把焦點放在你如何辨認現況、處理阻力，並把下一步落回可執行的選擇。${balanceLine}這組牌先提醒你看見 ${challengeCard.card.nameZh} 帶出的${challengeCard.card.keywords[0]}相關卡點；它可能不是單一事件，而是反覆影響判斷的模式。真正能往前推動的方向，則落在 ${nextCard.card.nameZh} 所象徵的${nextCard.card.keywords[0]}：先整理資訊、承認感受，再選一個最小但具體的行動。請把解讀當作自我反思參考，重要決策仍應回到現實資訊與專業意見。`;
 
   return { cards, interpretations, summary, actions: buildReadingActions(cards) };
 }
@@ -247,7 +283,7 @@ export function buildClarificationFallback(
 ${cardLines.join('\n')}
 
 # 你的處境
-你現在大概卡在「知道自己有感覺，但還沒把感覺整理成判斷依據」。${challengeCard.card.nameZh}指出的${challengeCard.card.keywords[0]}是這次最需要釐清的地方——可能是拖延、過度猜測、等別人給答案，或忽略了真正的限制。同時，${nextCard.card.nameZh}提示你手上其實有可用的資源，只是還沒接上。
+你現在大概卡在「知道自己有感覺，但還沒把感覺整理成判斷依據」。${challengeCard.card.nameZh}指出的${challengeCard.card.keywords[0]}是這次最需要釐清的地方——可能是拖延、過度猜測、等別人給答案，或忽略了真正的限制。同時，${nextCard.card.nameZh}提示你手上其實有可用的資源，只是還沒接上。${analyzeArcanaBalance(cards)?.note ?? ''}
 
 # 接下來怎麼做
 1. 寫下三個已知事實，和三個只是你的猜測——分清楚這兩者。

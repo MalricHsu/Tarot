@@ -22,6 +22,7 @@ interface TarotCard {
   visualDescription: string;
   cardMessage: string;
   generalInterpretation: string;
+  arcana?: 'major' | 'minor';
 }
 
 interface SpreadPosition {
@@ -72,6 +73,45 @@ const GEMINI_MODELS = [
 
 type GeminiModel = (typeof GEMINI_MODELS)[number];
 
+// ── 大小牌比例判讀 ──────────────────────────────────────────────
+// 一般 78 張牌陣大牌約佔 28%（大牌:小牌 ≈ 1:2.5）。比例本身是判讀訊號：
+// 大牌偏多＝精神層面影響大、當事人能掌控的少；小牌偏多＝具體事件、可改變空間大。
+// 牌數太少（< 3）時比例不具參考意義，不產生此段。
+
+function buildArcanaBalanceNote(cards: DrawnCard[]): string {
+  const total = cards.length;
+  if (total < 3) return '';
+
+  const majorCount = cards.filter((c) => c.card.arcana === 'major').length;
+  // arcana 缺失時無法判讀，整段略過，避免基於錯誤資料誤導。
+  if (majorCount === 0 && !cards.every((c) => c.card.arcana === 'minor')) return '';
+
+  const minorCount = total - majorCount;
+  const pct = Math.round((majorCount / total) * 100);
+
+  let signal: string;
+  if (majorCount === 0) {
+    signal =
+      '本次全為小牌，代表此事主要落在具體、日常、可操作的層面，影響較短期，當事人能靠自身行動改變的空間很大；請偏重實際、可執行的方向。';
+  } else if (pct < 15) {
+    signal =
+      '小牌明顯偏多，代表此事偏向具體事件與日常層面，影響較短期，當事人能靠自己行動改變的空間較大；請偏重實際、可操作的提醒。';
+  } else if (pct < 43) {
+    signal =
+      '大小牌比例接近常態，精神層面與現實事件大致並重；請平衡描述內在狀態與具體行動。';
+  } else if (pct < 70) {
+    signal =
+      '大牌偏多，代表此事在精神層面影響很大、當事人相當重視，但多半在內心進行，靠自身之力能直接掌控或改變的不多，較需要時間沉澱與等待，而非急於行動；請帶出這層「重要但難以強求」的意義。';
+  } else {
+    signal =
+      '幾乎都是大牌，代表此事深刻觸動當事人的信仰與價值觀、影響長遠，卻幾乎不在其能直接掌控的範圍內；當事人多半只能調整心態、耐心等待，而非靠行動立即改變局面。';
+  }
+
+  return `牌陣大小牌比例（請在解讀中自然融入這層意義，不要生硬列出數字或比例術語）：
+本次共 ${total} 張牌，大牌 ${majorCount} 張、小牌 ${minorCount} 張，大牌約佔 ${pct}%（一般牌陣大牌約佔 28%，即大牌:小牌 ≈ 1:2.5）。
+${signal}`;
+}
+
 // ── Prompt builders ─────────────────────────────────────────────
 
 function formatCardPayload(
@@ -98,6 +138,7 @@ generalInterpretation: "${card.card.generalInterpretation}"`;
 }
 
 function buildReadingPrompt(question: string, cards: DrawnCard[], spread: SpreadDefinition): string {
+  const balanceNote = buildArcanaBalanceNote(cards);
   return `你是一位神秘、優雅且溫柔的神諭塔羅傳訊者。這一次固定使用「神諭模式」，mode: "oracle"。
 使用者想問的問題是：「${question}」
 使用的牌陣是：「${spread.label}」。
@@ -105,7 +146,7 @@ function buildReadingPrompt(question: string, cards: DrawnCard[], spread: Spread
 
 抽到的牌如下，這些牌的基本牌義會由本地資料直接顯示；你只需要參考它們來做整體統整：
 ${cards.map((card, index) => formatCardPayload(card, index, question, 'oracle')).join('\n\n')}
-
+${balanceNote ? `\n${balanceNote}\n` : ''}
 請根據使用者問題、牌陣位置、正逆位、牌面意象與全部抽牌之間的關係，產生整體解簽。
 風格要求：
 - 語氣要神秘、優雅、象徵化，像神諭低聲指出道路，但仍保有溫度。
@@ -126,6 +167,7 @@ function buildClarificationPrompt(
   spread: SpreadDefinition,
   reading: ReadingResult,
 ): string {
+  const balanceNote = buildArcanaBalanceNote(cards);
   return `你是一個懂塔羅的教練。使用者剛看完一段神諭式（象徵、優雅）的解讀，現在需要你把它落地。
 你的任務不是重新抽牌、也不是改寫牌義，而是把這組牌翻譯成「現實上該怎麼理解、怎麼做」。
 
@@ -139,7 +181,7 @@ function buildClarificationPrompt(
 牌陣：「${spread.label}」- ${spread.description}
 牌面資料：
 ${cards.map((card, index) => formatCardPayload(card, index, question, 'clear')).join('\n\n')}
-
+${balanceNote ? `\n${balanceNote}\n` : ''}
 原本每張牌解讀：
 ${reading.interpretations.map((text, index) => `${index + 1}. ${text}`).join('\n')}
 
